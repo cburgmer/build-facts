@@ -3,15 +3,9 @@ set -e
 
 readonly SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
 
-goal_prettier() {
-    ./lein npm run prettier
-}
-
 goal_lint() {
-    find "$SCRIPT_DIR" -name "*.sh" -not -path "${SCRIPT_DIR}/test/node_modules/*" -exec shellcheck {} +
+    find "$SCRIPT_DIR" -name "*.sh" -exec shellcheck {} +
     shellcheck "$SCRIPT_DIR"/go
-
-    ./lein npm run lint
 }
 
 goal_test_unit() {
@@ -31,17 +25,10 @@ goal_test_integration() {
     "${SCRIPT_DIR}/test/integration/test_teamcity.sh"
 }
 
-goal_test_example() {
-    echo
-    echo "Running simple example to make sure it doesn't break"
-    yes | "${SCRIPT_DIR}/examples/runSeedDataExample.sh"
-}
-
 goal_test() {
     goal_lint
     goal_test_unit
     goal_test_integration
-    goal_test_example
 }
 
 goal_make_release() {
@@ -73,33 +60,6 @@ goal_make_release() {
         echo "$ git push origin master --tags"
         echo "$ ./go publish_docker ${NEW_VERSION} # once travis has built the jar"
     )
-}
-
-fetch_buildviz_jar() {
-    local version="$1"
-    (
-        cd src/docker
-        rm -f buildviz-*-standalone.jar
-        curl -LO "https://github.com/cburgmer/buildviz/releases/download/${version}/buildviz-${version}-standalone.jar"
-    )
-}
-
-goal_publish_docker() {
-    local latest_version="$1"
-    local image_name="cburgmer/buildviz"
-
-    if [[ -z "$latest_version" ]]; then
-        echo "Please provide a version number"
-        exit 1
-    fi
-
-    echo "Logged into docker registry?"
-    read -rn 1
-
-    fetch_buildviz_jar "$latest_version"
-    docker build src/docker --tag "${image_name}:${latest_version}" --tag "${image_name}:latest"
-    docker push "${image_name}:${latest_version}"
-    docker push "${image_name}:latest"
 }
 
 print_usage() {

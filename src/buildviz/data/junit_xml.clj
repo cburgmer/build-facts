@@ -2,10 +2,15 @@
   (:gen-class)
   (:require [clojure.data.xml :as xml]
             [clojure.string :as str]
-            [clojure.java.io :as io]
-            [buildviz.util.math :as math]))
+            [clojure.java.io :as io])
+  (:import [java.util Locale]))
 
 ;; Parsing is following schema documented in http://llg.cubic.org/docs/junit/
+
+;; https://stackoverflow.com/questions/44281495/format-string-representation-of-float-according-to-english-locale-with-clojure/44287007
+(defn format-locale-neutral [fmt n]
+  (let [locale (Locale. "en-US")]
+    (String/format locale fmt (into-array Object [n]))))
 
 (defn- is-failure? [testcase-elem]
   (some #(= :failure (:tag %))
@@ -95,7 +100,7 @@
 (declare element->node)
 
 (defn format-runtime-in-millis [duration]
-  (math/format-locale-neutral "%.3f" (float (/ duration 1000))))
+  (format-locale-neutral "%.3f" (float (/ duration 1000))))
 
 (defn- testcase-status->node [status]
   (case status

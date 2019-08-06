@@ -7,13 +7,6 @@ pom.xml.asc
 *.class
 /.lein-*
 /.nrepl-port
-/resources/public/node_modules/
-/test/node_modules/
-/test/package-lock.json
-.vagrant/
-/examples/aws/data/
-/examples/aws/deploy/.terraform/
-/examples/aws/deploy/terraform.tfstate*
 /data/
 /log/
 /examples/gocd/server/config/
