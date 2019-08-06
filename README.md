@@ -35,7 +35,7 @@ You'll receive the last two months of builds (use `--help` for options). Voila:
     data/Test:
     1.json  2.json  3.json  4.json  5.json  6.json
 
-Each file representing a build with the given job name and build nr.:
+Each file representing a build with the given job name and build id:
 
     $ cat data/Test/6.json | jp
     {
