@@ -1,19 +1,8 @@
 Just a few pointers if you want to make changes to buildviz:
 
-## Run the server locally
-
-    $ ./lein do deps, ring server
-    # optionally
-    $ ./examples/data/seedDummyData.sh
-
 ## Run the tests
 
     $ ./go
-
-## UI regression tests
-
-    $ ./test/serve_ui_test.sh
-    $ open http://localhost:8000/test/RegressionRunner.html
 
 ## Inspect JUnit XML file
 
@@ -22,10 +11,6 @@ Just a few pointers if you want to make changes to buildviz:
 ## Run sync for GoCD locally
 
     $ ./lein run -m buildviz.go.sync http://$USER:$PW@localhost:8153/go
-
-## Generate the standalone jar
-
-    $ ./lein ring uberjar
 
 ## Make a new release
 

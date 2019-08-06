@@ -1,69 +1,68 @@
-# buildviz
+This yet unnamed child is a fork of [buildviz](https://github.com/cburgmer/buildviz).
+It only retains the logic necessary to read build data from different build
+servers:
 
-Transparency for your build pipeline's results and runtime.
+- Jenkins
+- Go.cd
+- Teamcity
 
-> The most important things cannot be measured.
-> - [W. Edwards Deming](https://en.wikipedia.org/wiki/W._Edwards_Deming)
->
-> > Your build pipeline can.
-> > - Anonymous
+Currently it just dumps all the data into the current working directory under
+`./data`.
 
-## The What
+## Howto
 
-Buildviz provides graphs detailing runtime behaviour, failures and stability of the pipeline, answering a
-[multitude of questions](https://github.com/cburgmer/buildviz/wiki/Questions) in the hopes of improving your pipeline.
+Have a build server running, e.g. an example Jenkins shipped with this repo:
 
-All it needs is your build history including test results.
+    $ cd examples/jenkins
+    $ ./run.sh start
 
-![Screenshot](https://github.com/cburgmer/buildviz/raw/master/examples/data/screenshot.png)
+Now start the sync pointing to this instance
 
-## Example
+    $ ./lein run -m buildviz.jenkins.sync http://localhost:8080
+    Jenkins http://localhost:8080
+    Finding all builds for syncing (starting from 2019-06-05T22:00:00.000Z)...
+    Syncing [==================================================] 100% 11/11
 
-Here's [buildviz's look at 'Kotlin Tools and Libraries'](http://buildviz.cburgmer.space/index.html) on [teamcity.jetbrains.com](https://teamcity.jetbrains.com/project.html?projectId=KotlinTools).
+You'll receive the last two months of builds (use `--help` for options). Voila:
 
-## Usage
+    $ ls data/*
+    data/Deploy:
+    1.json  2.json  3.json
 
-    $ curl -OL https://github.com/cburgmer/buildviz/releases/download/0.14.1/buildviz-0.14.1-standalone.jar
-    $ java -jar buildviz-0.14.1-standalone.jar
+    data/SmokeTest:
+    1.json  2.json
 
-Now, buildviz takes in new build results via `PUT` to `/builds`. Some suggestions how to set it up:
+    data/Test:
+    1.json  2.json  3.json  4.json  5.json  6.json
 
-#### DIY
+Each file representing a build with the given job name and build nr.:
 
-For every build `PUT` JSON data to `http://localhost:3000/builds/$JOB_NAME/$BUILD_ID`, for example:
+    $ cat data/Test/6.json | jp
+    {
+      "start": 1565122270460,
+      "end": 1565122272939,
+      "outcome": "fail",
+      "inputs": [
+        {
+          "revision": "edfb6bd410a6fd4a5814e29acc7b2bad99c37ecc",
+          "sourceId": "https://github.com/cburgmer/buildviz.git"
+        }
+      ]
+    }
 
-```js
-{
-  "start": 1451449853542,
-  "end": 1451449870555,
-  "outcome": "pass", /* or "fail" */
-  "inputs": [{
-    "revision": "1eadcdd4d35f9a",
-    "sourceId": "git@github.com:cburgmer/buildviz.git"
-  }],
-  "triggeredBy": [{
-    "jobName": "Test",
-    "buildId": "42"
-  }]
-}
-```
+You can come back later and sync more builds, automatically resuming where you
+left off before
 
-The build's `start` is required, all other values are optional.
+    $ ./lein run -m buildviz.jenkins.sync http://localhost:8080
+    Jenkins http://localhost:8080
+    Finding all builds for syncing (starting from 2019-08-06T20:11:10.460Z)...
+    Syncing [==================================================] 100% 1/1
 
-JUnit XML ([or JSON](https://github.com/cburgmer/buildviz/wiki#help-my-tests-dont-generate-junit-xml)) formatted test results can be `PUT` to `http://localhost:3000/builds/$JOB_NAME/$BUILD_ID/testresults`
+## To do
 
-#### Sync from supported build servers
+This fork needs cleaning up:
 
-E.g. sync existing history from GoCD (see `--help` for details):
-
-    $ java -cp buildviz-0.14.1-standalone.jar buildviz.go.sync http://$USER:$PW@localhost:8153/go
-
-There's support for [Jenkins, GoCD and TeamCity](https://github.com/cburgmer/buildviz/wiki/CI-tool-integration).
-
-## More
-
-[FAQ](https://github.com/cburgmer/buildviz/wiki)
-
-You might also like [Kuona project for IT Analytics](https://github.com/kuona/kuona-project), [Test Trend Analyzer](https://github.com/anandbagmar/tta), [TRT](https://github.com/thetestpeople/trt) or (commercial solution) [GoCD's analytics extension](https://extensions-docs.gocd.org/analytics/current/).
-
-Reach out to [@cburgmer](https://twitter.com/cburgmer) for feedback and ideas.
+- Go.cd and Teamcity code needs to be migrated
+- Integration tests are broken
+- Java namespaces
+- DEVELOP and examples/ documentation is out of date

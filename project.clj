@@ -17,8 +17,6 @@
                  [intervox/clj-progress "0.2.1"]
                  [uritemplate-clj "1.2.1"]
                  [wharf "0.2.0-20141115.032457-2"]]
-  :ring {:handler buildviz.main/app
-         :init buildviz.main/help}
   :aot [buildviz.go.sync
         buildviz.jenkins.sync
         buildviz.teamcity.sync
