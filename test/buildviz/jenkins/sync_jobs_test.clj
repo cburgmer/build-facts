@@ -6,6 +6,7 @@
             [clj-time
              [coerce :as tc]
              [core :as t]]
+            [clojure.java.io :as io]
             [clojure.test :refer :all]))
 
 (defn- successful-json-response [body]
@@ -28,53 +29,46 @@
                              (fn [_] {:status 404 :body ""})]) builds)]
     (cons job-builds test-results)))
 
-(defn- provide-buildviz-and-capture-puts [map-ref]
-  [[#"http://buildviz:8010/builds/(.+)/(.+)"
-    (fn [req]
-      (swap! map-ref #(conj % [(:uri req)
-                               (j/parse-string (slurp (:body req)) true)]))
-      {:status 200 :body ""})]])
-
 (defn- serve-up [& routes]
   (->> routes
        (mapcat identity)
        (into {})))
 
+(defn- create-tmp-dir [prefix] ; http://stackoverflow.com/questions/617414/create-a-temporary-directory-in-java
+  (let [tmp-file (java.io.File/createTempFile prefix ".tmp")]
+    (.delete tmp-file)
+    (.getPath tmp-file)))
+
 (def beginning-of-2016 (t/date-time 2016 1 1))
 
 
 (deftest test-sync-jobs
-  (testing "should handle no jobs "
-    (let [store (atom [])]
+  (testing "should handle no jobs"
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation (serve-up (a-view))
-        (with-out-str (sut/sync-jobs (url/url "http://jenkins:4321") (url/url "http://buildviz:8010") beginning-of-2016)))
-      (is (= []
-             @store))))
+        (with-out-str (sut/sync-jobs (url/url "http://jenkins:4321") data-dir beginning-of-2016)))
+      (is (nil? (.listFiles (io/file data-dir))))))
 
   (testing "should handle no builds"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
                                                     (a-job-with-builds "some_job"))
-        (with-out-str (sut/sync-jobs (url/url "http://jenkins:4321") (url/url "http://buildviz:8010") beginning-of-2016)))
-      (is (= []
-             @store))))
+        (with-out-str (sut/sync-jobs (url/url "http://jenkins:4321") data-dir beginning-of-2016)))
+      (is (nil? (.listFiles (io/file data-dir))))))
 
   (testing "should sync a simple build"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
                                                     (a-job-with-builds "some_job" {:number "21"
                                                                                    :timestamp 1493201298062
                                                                                    :duration 10200
-                                                                                   :result "SUCCESS"})
-                                                    (provide-buildviz-and-capture-puts store))
-        (with-out-str (sut/sync-jobs (url/url "http://jenkins:4321") (url/url "http://buildviz:8010") beginning-of-2016)))
-      (is (= [["/builds/some_job/21" {:start 1493201298062
-                                      :end 1493201308262
-                                      :outcome "pass"}]]
-             @store))))
+                                                                                   :result "SUCCESS"}))
+        (with-out-str (sut/sync-jobs (url/url "http://jenkins:4321") data-dir beginning-of-2016)))
+      (is (= "{\"start\":1493201298062,\"end\":1493201308262,\"outcome\":\"pass\"}"
+           (slurp (io/file data-dir "some_job/21.json"))))))
 
   (testing "should omit build trigger if triggered by user due to temporal disconnect"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
                                                     (a-job-with-builds "some_job" {:number "21"
                                                                                    :timestamp 1493201298062
@@ -82,8 +76,7 @@
                                                                                    :result "SUCCESS"
                                                                                    :actions [{:causes [{:upstreamProject "the_upstream"
                                                                                                         :upstreamBuild "33"}]}
-                                                                                             {:causes [{:userId "the_user"}]}]})
-                                                    (provide-buildviz-and-capture-puts store))
-        (with-out-str (sut/sync-jobs (url/url "http://jenkins:4321") (url/url "http://buildviz:8010") beginning-of-2016)))
-      (is (nil? (get (first (map last @store))
+                                                                                             {:causes [{:userId "the_user"}]}]}))
+        (with-out-str (sut/sync-jobs (url/url "http://jenkins:4321") data-dir beginning-of-2016)))
+      (is (nil? (get (j/parse-string (slurp (io/file data-dir "some_job/21.json")))
                      :triggeredBy))))))

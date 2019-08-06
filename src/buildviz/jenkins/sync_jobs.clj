@@ -2,7 +2,7 @@
   (:require [buildviz.jenkins
              [api :as api]
              [transform :as transform]]
-            [buildviz.util.json :as json]
+            [buildviz.storage :as storage]
             [buildviz.util.url :as url]
             [cheshire.core :as j]
             [clj-http.client :as client]
@@ -19,21 +19,11 @@
   (assoc build :test-report (api/get-test-report jenkins-url job-name number)))
 
 
-(defn- put-build [buildviz-url job-name build-id build]
-  (client/put (string/join [(url/with-plain-text-password buildviz-url) (templ/uritemplate "/builds{/job}{/build}" {"job" job-name "build" build-id})])
-              {:content-type :json
-               :body (json/to-string build)}))
-
-(defn- put-test-results [buildviz-url job-name build-id test-results]
-  (client/put (string/join [(url/with-plain-text-password buildviz-url) (templ/uritemplate "/builds{/job}{/build}/testresults" {"job" job-name "build" build-id})])
-              {:content-type :json
-               :body (j/generate-string test-results)}))
-
-(defn put-to-buildviz [buildviz-url {:keys [job-name build-id build test-results]}]
+(defn store [data-dir {:keys [job-name build-id build test-results]}]
   (log/info (format "Syncing %s %s: build" job-name build-id))
-  (put-build buildviz-url job-name build-id build)
+  (storage/store-build! data-dir job-name build-id build)
   (when test-results
-    (put-test-results buildviz-url job-name build-id test-results)))
+    (storage/store-testresults! data-dir job-name build-id test-results)))
 
 
 (defn- jenkins-build->start-time [{timestamp :timestamp}]
@@ -51,8 +41,8 @@
 (defn- sync-oldest-first-to-deal-with-cancellation [builds]
   (sort-by :timestamp builds))
 
-(defn sync-jobs [jenkins-url buildviz-url sync-start-time]
-  (println "Jenkins" (str jenkins-url) "-> buildviz" (str buildviz-url))
+(defn sync-jobs [jenkins-url data-dir sync-start-time]
+  (println "Jenkins" (str jenkins-url))
   (println (format "Finding all builds for syncing (starting from %s)..."
                  (tf/unparse (:date-time tf/formatters) sync-start-time)))
   (->> (api/get-jobs jenkins-url)
@@ -61,7 +51,7 @@
        sync-oldest-first-to-deal-with-cancellation
        (map (partial add-test-results jenkins-url))
        (map transform/jenkins-build->buildviz-build)
-       (map (partial put-to-buildviz buildviz-url))
+       (map (partial store data-dir))
        (map progress/tick)
        dorun
        (progress/done)))
