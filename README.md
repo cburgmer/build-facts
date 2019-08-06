@@ -50,6 +50,16 @@ Each file representing a build with the given job name and build id:
       ]
     }
 
+If you happen to receive JUnit XML test results, you can inspect them via
+
+    $ ./lein run -m buildviz.data.junit-xml data/Example\ %3a%3a\ test/4.xml
+    Another Test Suite
+      Nested Test Suite
+        some.class.A Test	0.002	:fail
+        some.class.Some Test	0.005	:error
+        some.class.Another Test	0.003	:pass
+        some.class.Skipped Test	0.004	:skipped
+
 You can come back later and sync more builds, automatically resuming where you
 left off before
 
