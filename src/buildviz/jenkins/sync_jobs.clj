@@ -22,8 +22,10 @@
 (defn store [data-dir {:keys [job-name build-id build test-results]}]
   (log/info (format "Syncing %s %s: build" job-name build-id))
   (storage/store-build! data-dir job-name build-id build)
-  (when test-results
-    (storage/store-testresults! data-dir job-name build-id test-results)))
+  ;; disabled as Jenkins is currently trying to write JSON, but the storage is designed for XML
+  ;; (when test-results
+  ;;   (storage/store-testresults! data-dir job-name build-id test-results))
+  )
 
 
 (defn- jenkins-build->start-time [{timestamp :timestamp}]
