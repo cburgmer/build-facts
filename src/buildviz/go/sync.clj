@@ -2,6 +2,7 @@
   (:gen-class)
   (:require [buildviz.go.sync-jobs :as sync-jobs]
             [buildviz.util.url :as url]
+            [buildviz.storage :as storage]
             [cheshire.core :as j]
             [clj-http.client :as client]
             [clj-time.coerce :as tc]
@@ -10,6 +11,8 @@
             [clj-time.local :as l]
             [clojure.string :as str]
             [clojure.tools.cli :refer [parse-opts]]))
+
+(def data-dir "data")
 
 (def tz (t/default-time-zone))
 
@@ -28,10 +31,7 @@
              options-summary]))
 
 (def cli-options
-  [["-b" "--buildviz URL" "URL pointing to a running buildviz instance"
-    :id :buildviz-url
-    :default "http://localhost:3000"]
-   ["-f" "--from DATE" "Date from which on builds are loaded, if not specified tries to pick up where the last run finished"
+  [["-f" "--from DATE" "Date from which on builds are loaded, if not specified tries to pick up where the last run finished"
     :id :sync-start-time
     :parse-fn #(tf/parse date-formatter %)]
    ["-g" "--pipeline-group PIPELINE_GROUP" "Go pipeline groups to be synced, all by default"
@@ -43,17 +43,11 @@
 
 (def two-months-ago (t/minus (.withTimeAtStartOfDay (l/local-now)) (t/months 2)))
 
-(defn- get-latest-synced-build-start [buildviz-url]
-  (let [response (client/get (str/join [(url/with-plain-text-password buildviz-url) "/status"]))
-        buildviz-status (j/parse-string (:body response) true)]
-    (when-let [latest-build-start (:latestBuildStart buildviz-status)]
-      (tc/from-long latest-build-start))))
-
-(defn- get-start-date [buildviz-url date-from-config]
+(defn- get-start-date [date-from-config]
   (if (some? date-from-config)
     date-from-config
-    (if-let [latest-sync-build-start (get-latest-synced-build-start buildviz-url)]
-      latest-sync-build-start
+    (if-let [builds (seq (storage/load-builds data-dir))]
+      (tc/from-long (apply max (map :start builds)))
       two-months-ago)))
 
 (defn -main [& c-args]
@@ -67,8 +61,7 @@
       (System/exit 1))
 
     (let [go-url (url/url (first (:arguments args)))
-          buildviz-url (url/url (:buildviz-url (:options args)))
-          sync-start-time (get-start-date buildviz-url (:sync-start-time (:options args)))
+          sync-start-time (get-start-date (:sync-start-time (:options args)))
           selected-pipeline-group-names (set (:pipeline-groups (:options args)))]
 
-      (sync-jobs/sync-stages go-url buildviz-url sync-start-time selected-pipeline-group-names))))
+      (sync-jobs/sync-stages go-url data-dir sync-start-time selected-pipeline-group-names))))

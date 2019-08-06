@@ -62,7 +62,7 @@ left off before
 
 This fork needs cleaning up:
 
-- Go.cd and Teamcity code needs to be migrated
+- Teamcity code needs to be migrated
 - Integration tests are broken
 - Java namespaces
 - DEVELOP and examples/ documentation is out of date

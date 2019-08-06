@@ -78,5 +78,5 @@
                                                                                                         :upstreamBuild "33"}]}
                                                                                              {:causes [{:userId "the_user"}]}]}))
         (with-out-str (sut/sync-jobs (url/url "http://jenkins:4321") data-dir beginning-of-2016)))
-      (is (nil? (get (j/parse-string (slurp (io/file data-dir "some_job/21.json")))
+      (is (nil? (get (j/parse-string (slurp (io/file data-dir "some_job/21.json")) true)
                      :triggeredBy))))))

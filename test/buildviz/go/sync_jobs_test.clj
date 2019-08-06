@@ -7,6 +7,7 @@
             [clj-time.coerce :as tc]
             [clj-time.format :as tf]
             [clojure.data.xml :as xml]
+            [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.test :refer :all]))
 
@@ -109,42 +110,41 @@
             pipeline-name pipeline-run stage-name stage-run build-name file-path)
     (successful-response content)]])
 
-(defn- provide-buildviz-and-capture-puts [map-ref]
-  [[#"http://buildviz:8010/builds/([^/]+)/([^/]+)"
-    (fn [req]
-      (swap! map-ref #(conj % [(:uri req)
-                               (j/parse-string (slurp (:body req)) true)]))
-      {:status 200 :body ""})]
-   [#"http://buildviz:8010/builds/([^/]+)/([^/]+)/testresults"
-    (fn [req]
-      (swap! map-ref #(conj % [(:uri req)
-                               (slurp (:body req))]))
-      {:status 204 :body ""})]])
-
 (defn- serve-up [& routes]
   (->> routes
        (mapcat identity)
        (into {})))
+
+(defn- create-tmp-dir [prefix] ; http://stackoverflow.com/questions/617414/create-a-temporary-directory-in-java
+  (let [tmp-file (java.io.File/createTempFile prefix ".tmp")]
+    (.delete tmp-file)
+    (.getPath tmp-file)))
 
 (def beginning-of-2016 (t/date-time 2016 1 1))
 
 
 (deftest test-sync-jobs
   (testing "should handle no pipeline groups"
-    (fake/with-fake-routes-in-isolation (serve-up (a-config))
-      (with-out-str (sut/sync-stages (url/url "http://gocd:8513") (url/url "http://buildviz:8010") beginning-of-2016 nil))))
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
+      (fake/with-fake-routes-in-isolation (serve-up (a-config))
+        (with-out-str (sut/sync-stages (url/url "http://gocd:8513") data-dir beginning-of-2016 nil)))
+      (is (nil? (.listFiles (io/file data-dir))))))
 
   (testing "should handle empty pipeline group"
-    (fake/with-fake-routes-in-isolation (serve-up (a-config (a-pipeline-group "Development")))
-      (with-out-str (sut/sync-stages (url/url "http://gocd:8513") (url/url "http://buildviz:8010") beginning-of-2016 nil))))
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
+      (fake/with-fake-routes-in-isolation (serve-up (a-config (a-pipeline-group "Development")))
+        (with-out-str (sut/sync-stages (url/url "http://gocd:8513") data-dir beginning-of-2016 nil)))
+      (is (nil? (.listFiles (io/file data-dir))))))
 
   (testing "should handle empty pipeline"
-    (fake/with-fake-routes-in-isolation (serve-up (a-config (a-pipeline-group "Development"
-                                                                              (a-pipeline "Build"))))
-      (with-out-str (sut/sync-stages (url/url "http://gocd:8513") (url/url "http://buildviz:8010") beginning-of-2016 nil))))
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
+      (fake/with-fake-routes-in-isolation (serve-up (a-config (a-pipeline-group "Development"
+                                                                                (a-pipeline "Build"))))
+        (with-out-str (sut/sync-stages (url/url "http://gocd:8513") data-dir beginning-of-2016 nil)))
+      (is (nil? (.listFiles (io/file data-dir))))))
 
   (testing "should sync a stage"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -160,19 +160,18 @@
                                         :end-time (t/date-time 2017 1 1 12 0)
                                         :outcome "Passed"
                                         :actual-stage-run "1"})
-                  (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob")
-                  (provide-buildviz-and-capture-puts store))
+                  (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (= [["/builds/Build%20%3A%3A%20DoStuff/42" {:start 1483264800000
-                                                      :end 1483272000000
-                                                      :outcome "pass"
-                                                      :inputs [{:revision "AnotherPipeline/21", :sourceId 7}]}]]
-             @store))))
+      (is (= {:start 1483264800000
+              :end 1483272000000
+              :outcome "pass"
+              :inputs [{:revision "AnotherPipeline/21", :sourceId 7}]}
+             (j/parse-string (slurp (io/file data-dir "Build %3a%3a DoStuff/42.json")) true)))))
 
   (testing "should sync a build trigger from another pipeline"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -188,20 +187,17 @@
                                         :end-time (t/date-time 2017 1 1 12 0)
                                         :outcome "Passed"
                                         :actual-stage-run "1"})
-                  (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob")
-                  (provide-buildviz-and-capture-puts store))
+                  (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (= [{:job-name "AnotherPipeline :: AnotherStage"
-               :build-id "21 (Run 2)"}]
-             (-> @store
-                 first
-                 second
-                 :triggered-by)))))
+      (is (= [{:jobName "AnotherPipeline :: AnotherStage"
+               :buildId "21 (Run 2)"}]
+             (-> (j/parse-string (slurp (io/file data-dir "Build %3a%3a DoStuff/42.json")) true)
+                 :triggeredBy)))))
 
   (testing "should not sync a forced build trigger"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -213,18 +209,15 @@
                                          [(a-stage-run "DoStuff" "1")]
                                          (a-pipeline-build-cause 7 "AnotherPipeline" 21 "AnotherStage" 2))
                   (a-builds-properties 321 {})
-                  (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob")
-                  (provide-buildviz-and-capture-puts store))
+                  (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (nil? (-> @store
-                    first
-                    second
-                    :triggered-by)))))
+      (is (nil? (-> (j/parse-string (slurp (io/file data-dir "Build %3a%3a DoStuff/42.json")) true)
+                    :triggeredBy)))))
 
   (testing "should not count a source revision cause as pipeline trigger"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -240,18 +233,15 @@
                                         :end-time (t/date-time 2017 1 1 12 0)
                                         :outcome "Passed"
                                         :actual-stage-run "1"})
-                  (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob")
-                  (provide-buildviz-and-capture-puts store))
+                  (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (nil? (-> @store
-                    first
-                    second
-                    :triggered-by)))))
+      (is (nil? (-> (j/parse-string (slurp (io/file data-dir "Build %3a%3a DoStuff/42.json")) true)
+                    :triggeredBy)))))
 
   (testing "should only sync build trigger from pipeline material for first stage"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -269,23 +259,21 @@
                   (a-builds-properties 321 {})
                   (a-builds-properties 4711 {})
                   (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob")
-                  (a-file-list "Build" 42 "MoreStuff" "1" "defaultJob")
-                  (provide-buildviz-and-capture-puts store))
+                  (a-file-list "Build" 42 "MoreStuff" "1" "defaultJob"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (let [pipeline-trigger {:job-name "AnotherPipeline :: AnotherStage"
-                              :build-id "21 (Run 2)"}]
-        (is (= 1
-               (->> @store
-                    (map second)
-                    (map :triggered-by)
-                    (filter (fn [triggers] (some #(= % pipeline-trigger)
-                                                 triggers)))
-                    count))))))
+      (let [pipeline-trigger {:jobName "AnotherPipeline :: AnotherStage"
+                              :buildId "21 (Run 2)"}]
+        (is (some #(= pipeline-trigger %)
+                  (-> (j/parse-string (slurp (io/file data-dir "Build %3a%3a DoStuff/42.json")) true)
+                      :triggeredBy)))
+        (is (nil? (some #(= pipeline-trigger %)
+                       (-> (j/parse-string (slurp (io/file data-dir "Build %3a%3a MoreStuff/42.json")) true)
+                           :triggeredBy)))))))
 
   (testing "should sync build trigger from stage of same pipeline"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -310,20 +298,40 @@
                                         :outcome "Passed"
                                         :actual-stage-run "1"})
                   (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob")
-                  (a-file-list "Build" 42 "MoreStuff" "1" "defaultJob")
-                  (provide-buildviz-and-capture-puts store))
+                  (a-file-list "Build" 42 "MoreStuff" "1" "defaultJob"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (= [{:job-name "Build :: DoStuff"
-               :build-id "42"}]
-             (-> @store
-                 (nth 1)
-                 second
-                 :triggered-by)))))
+      (is (= [{:jobName "Build :: DoStuff"
+               :buildId "42"}]
+             (-> (j/parse-string (slurp (io/file data-dir "Build %3a%3a MoreStuff/42.json")) true)
+                 :triggeredBy)))))
+
+  (testing "should handle a rerun"
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
+      (fake/with-fake-routes-in-isolation
+        (serve-up (a-config (a-pipeline-group "Development"
+                                              (a-pipeline "Build"
+                                                          (a-stage "DoStuff"))))
+                  (a-short-history "Build" "DoStuff"
+                                   (a-stage-run 42 "2" "Passed"
+                                                (a-job-run "AlphaJob" 1493201298062 321)))
+                  (a-pipeline-run "Build" 42 [(a-stage-run "DoStuff" "1")])
+                  (a-builds-properties 321
+                                       {:start-time (t/date-time 2017 1 1 10 0 0)
+                                        :end-time (t/date-time 2017 1 1 12 0)
+                                        :outcome "Passed"
+                                        :actual-stage-run "2"})
+                  (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
+        (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
+                                       data-dir
+                                       beginning-of-2016 nil)))
+      (is (= ["42 (Run 2).json"]
+             (->> (.listFiles (io/file data-dir "Build %3a%3a DoStuff"))
+                  (map #(.getName %)))))))
 
   (testing "should not sync build trigger for re-run of stage"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -348,41 +356,15 @@
                                         :outcome "Passed"
                                         :actual-stage-run "1"})
                   (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob")
-                  (a-file-list "Build" 42 "MoreStuff" "1" "defaultJob")
-                  (provide-buildviz-and-capture-puts store))
+                  (a-file-list "Build" 42 "MoreStuff" "1" "defaultJob"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (nil? (-> @store
-                    (nth 1)
-                    second
-                    :triggered-by)))))
-
-  (testing "should handle a rerun"
-    (let [store (atom [])]
-      (fake/with-fake-routes-in-isolation
-        (serve-up (a-config (a-pipeline-group "Development"
-                                              (a-pipeline "Build"
-                                                          (a-stage "DoStuff"))))
-                  (a-short-history "Build" "DoStuff"
-                                   (a-stage-run 42 "2" "Passed"
-                                                (a-job-run "AlphaJob" 1493201298062 321)))
-                  (a-pipeline-run "Build" 42 [(a-stage-run "DoStuff" "1")])
-                  (a-builds-properties 321
-                                       {:start-time (t/date-time 2017 1 1 10 0 0)
-                                        :end-time (t/date-time 2017 1 1 12 0)
-                                        :outcome "Passed"
-                                        :actual-stage-run "2"})
-                  (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob")
-                  (provide-buildviz-and-capture-puts store))
-        (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
-                                       beginning-of-2016 nil)))
-      (is (= ["/builds/Build%20%3A%3A%20DoStuff/42%20%28Run%202%29"]
-             (map first @store)))))
+      (is (nil? (-> (j/parse-string (slurp (io/file data-dir "Build %3a%3a MoreStuff/42 (Run 2).json")) true)
+                    :triggeredBy)))))
 
   (testing "should sync a failing stage"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -396,34 +378,32 @@
                                         :end-time (t/date-time 2017 1 1 12 0)
                                         :outcome "Failed"
                                         :actual-stage-run "1"})
-                  (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob")
-                  (provide-buildviz-and-capture-puts store))
+                  (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (= [["/builds/Build%20%3A%3A%20DoStuff/42" {:start 1483264800000
-                                                      :end 1483272000000
-                                                      :outcome "fail"
-                                                      :inputs []}]]
-             @store))))
+      (is (= {:start 1483264800000
+              :end 1483272000000
+              :outcome "fail"
+              :inputs []}
+             (j/parse-string (slurp (io/file data-dir "Build %3a%3a DoStuff/42.json")) true)))))
 
   (testing "should ignore an ongoing stage"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
                                                           (a-stage "DoStuff"))))
                   (a-short-history "Build" "DoStuff"
                                    (a-stage-run 42 "1" "Unknown"
-                                                (a-job-run "AlphaJob" 1493201298062 321)))
-                  (provide-buildviz-and-capture-puts store))
+                                                (a-job-run "AlphaJob" 1493201298062 321))))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (empty? @store))))
+      (is (nil? (.listFiles (io/file data-dir))))))
 
   (testing "should ignore a stage who's job ran before the sync date offset"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -437,15 +417,14 @@
                                                 (a-job-run "BetaJob"
                                                            (+ (tc/to-long beginning-of-2016)
                                                               9001)
-                                                           987)))
-                  (provide-buildviz-and-capture-puts store))
+                                                           987))))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (empty? @store))))
+      (is (nil? (.listFiles (io/file data-dir))))))
 
   (testing "should only sync stage of pipeline that's after the sync date offset"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -464,16 +443,16 @@
                                                            987)))
                   (a-pipeline-run "Build" 42 [(a-stage-run "DoStuff" "1")])
                   (a-builds-properties 987 {})
-                  (a-file-list "Build" 42 "SomeMore" "1" "SomeJob")
-                  (provide-buildviz-and-capture-puts store))
+                  (a-file-list "Build" 42 "SomeMore" "1" "SomeJob"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (= ["/builds/Build%20%3A%3A%20SomeMore/42"]
-             (map first @store)))))
+      (is (= ["Build %3a%3a SomeMore"]
+             (->> (.listFiles (io/file data-dir))
+                  (map #(.getName %)))))))
 
   (testing "should sync test results"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -489,17 +468,15 @@
                                         {:name "results.xml"
                                          :url "http://example.com/something/files/Build/42/DoStuff/1/AlphaJob/tmp/results.xml"}]})
                   (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/results.xml"
-                          "<testsuites></testsuites>")
-                  (provide-buildviz-and-capture-puts store))
+                          "<testsuites></testsuites>"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (= [["/builds/Build%20%3A%3A%20DoStuff/42/testresults" "<?xml version=\"1.0\" encoding=\"UTF-8\"?><testsuites></testsuites>"]]
-             (filter (fn [[path payload]] (= path "/builds/Build%20%3A%3A%20DoStuff/42/testresults"))
-                     @store)))))
+      (is (= "<?xml version=\"1.0\" encoding=\"UTF-8\"?><testsuites></testsuites>"
+             (slurp (io/file data-dir "Build %3a%3a DoStuff/42.xml"))))))
 
   (testing "should sync multiple test results in one job"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -517,18 +494,15 @@
                   (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "one_result.xml"
                           "<testsuite name=\"one\"></testsuite>")
                   (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "others.xml"
-                          "<testsuites><testsuite name=\"other\"></testsuite></testsuites>")
-                  (provide-buildviz-and-capture-puts store))
+                          "<testsuites><testsuite name=\"other\"></testsuite></testsuites>"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (= [["/builds/Build%20%3A%3A%20DoStuff/42/testresults"
-               "<?xml version=\"1.0\" encoding=\"UTF-8\"?><testsuites><testsuite name=\"one\"></testsuite><testsuite name=\"other\"></testsuite></testsuites>"]]
-             (filter (fn [[path payload]] (= path "/builds/Build%20%3A%3A%20DoStuff/42/testresults"))
-                     @store)))))
+      (is (= "<?xml version=\"1.0\" encoding=\"UTF-8\"?><testsuites><testsuite name=\"one\"></testsuite><testsuite name=\"other\"></testsuite></testsuites>"
+             (slurp (io/file data-dir "Build %3a%3a DoStuff/42.xml"))))))
 
   (testing "should combine test results for two jobs"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -549,18 +523,15 @@
                   (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/results.xml"
                           "<testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>")
                   (a-file "Build" 42 "DoStuff" "1" "BetaJob" "tmp/results.xml"
-                          "<testsuites><testsuite name=\"Beta\"></testsuite></testsuites>")
-                  (provide-buildviz-and-capture-puts store))
+                          "<testsuites><testsuite name=\"Beta\"></testsuite></testsuites>"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (= [["/builds/Build%20%3A%3A%20DoStuff/42/testresults"
-               "<?xml version=\"1.0\" encoding=\"UTF-8\"?><testsuites><testsuite name=\"Alpha\"></testsuite><testsuite name=\"Beta\"></testsuite></testsuites>"]]
-             (filter (fn [[path payload]] (= path "/builds/Build%20%3A%3A%20DoStuff/42/testresults"))
-                     @store)))))
+      (is (= "<?xml version=\"1.0\" encoding=\"UTF-8\"?><testsuites><testsuite name=\"Alpha\"></testsuite><testsuite name=\"Beta\"></testsuite></testsuites>"
+             (slurp (io/file data-dir "Build %3a%3a DoStuff/42.xml"))))))
 
   (testing "should not store test results if one job has invalid XML"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -581,17 +552,17 @@
                   (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/results.xml"
                           "<testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>")
                   (a-file "Build" 42 "DoStuff" "1" "BetaJob" "tmp/results.xml"
-                          "<testsuite>invalid xml")
-                  (provide-buildviz-and-capture-puts store))
+                          "<testsuite>invalid xml"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (= []
-             (filter (fn [[path payload]] (= path "/builds/Build%20%3A%3A%20DoStuff/42/testresults"))
-                     @store)))))
+      (is (= ["42.json"]
+             (->> (io/file data-dir "Build %3a%3a DoStuff")
+                  .listFiles
+                  (map #(.getName %)))))))
 
   (testing "should store test results even if one job has no XML"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -608,18 +579,15 @@
                                          :url "http://example.com/something/files/Build/42/DoStuff/1/AlphaJob/tmp/results.xml"}]})
                   (a-file-list "Build" 42 "DoStuff" "1" "BetaJob")
                   (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/results.xml"
-                          "<testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>")
-                  (provide-buildviz-and-capture-puts store))
+                          "<testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (= [["/builds/Build%20%3A%3A%20DoStuff/42/testresults"
-               "<?xml version=\"1.0\" encoding=\"UTF-8\"?><testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>"]]
-             (filter (fn [[path payload]] (= path "/builds/Build%20%3A%3A%20DoStuff/42/testresults"))
-                     @store)))))
+      (is (= "<?xml version=\"1.0\" encoding=\"UTF-8\"?><testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>"
+             (slurp (io/file data-dir "Build %3a%3a DoStuff/42.xml"))))))
 
   (testing "should now include not JUnit XML file"
-    (let [store (atom [])]
+    (let [data-dir (create-tmp-dir "test-sync-jobs")]
       (fake/with-fake-routes-in-isolation
         (serve-up (a-config (a-pipeline-group "Development"
                                               (a-pipeline "Build"
@@ -637,11 +605,9 @@
                   (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/nontest.xml"
                           "<?xml version=\"1.0\" encoding=\"UTF-8\"?><someNode><contentNode></contentNode></someNode>")
                   (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/results.xml"
-                          "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <!-- comments are fine -->  <testsuites></testsuites>")
-                  (provide-buildviz-and-capture-puts store))
+                          "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <!-- comments are fine -->  <testsuites></testsuites>"))
         (with-out-str (sut/sync-stages (url/url "http://gocd:8513")
-                                       (url/url "http://buildviz:8010")
+                                       data-dir
                                        beginning-of-2016 nil)))
-      (is (= [["/builds/Build%20%3A%3A%20DoStuff/42/testresults" "<?xml version=\"1.0\" encoding=\"UTF-8\"?><testsuites></testsuites>"]]
-             (filter (fn [[path payload]] (= path "/builds/Build%20%3A%3A%20DoStuff/42/testresults"))
-                     @store))))))
+      (is (= "<?xml version=\"1.0\" encoding=\"UTF-8\"?><testsuites></testsuites>"
+             (slurp (io/file data-dir "Build %3a%3a DoStuff/42.xml")))))))

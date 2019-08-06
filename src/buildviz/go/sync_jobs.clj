@@ -3,6 +3,7 @@
             [buildviz.go.junit :as junit]
             [buildviz.go.transform :as transform]
             [buildviz.util.url :as url]
+            [buildviz.storage :as storage]
             [cheshire.core :as j]
             [clj-http.client :as client]
             [clj-progress.core :as progress]
@@ -64,37 +65,25 @@
 
 ;; upload
 
-(defn- put-build [buildviz-url job-name build-no build]
-  (client/put (str/join [(url/with-plain-text-password buildviz-url) (templ/uritemplate "/builds{/job}{/build}" {"job" job-name "build" build-no})])
-              {:content-type :json
-               :body (j/generate-string build)}))
-
-(defn- put-junit-xml [buildviz-url job-name build-no junit-xml]
+(defn- store-junit-xml [data-dir job-name build-no junit-xml]
   (try
     (let [xml-content (junit/merge-junit-xml junit-xml)]
-      (client/put (str/join [(url/with-plain-text-password buildviz-url) (templ/uritemplate "/builds{/job}{/build}/testresults" {"job" job-name "build" build-no})])
-                  {:body xml-content}))
+      (storage/store-testresults! data-dir job-name build-no xml-content))
     (catch javax.xml.stream.XMLStreamException e
       (do
         (log/errorf e "Unable parse JUnit XML from artifacts for %s %s." job-name build-no)
-        (log/info "Offending XML content is:\n" junit-xml)))
-    (catch Exception e
-      (if-let [data (ex-data e)]
-        (do
-          (log/errorf "Unable to sync testresults for %s %s (status %s): %s" job-name build-no (:status data) (:body data))
-          (log/info "Offending XML content is:\n" junit-xml))
-        (log/errorf e "Unable to sync testresults for %s %s" job-name build-no)))))
+        (log/info "Offending XML content is:\n" junit-xml)))))
 
-(defn- put-to-buildviz [buildviz-url {job-name :job-name build-no :build-id build :build junit-xml :junit-xml}]
+(defn- store [data-dir {job-name :job-name build-no :build-id build :build junit-xml :junit-xml}]
   (log/info (format "Syncing %s %s: build" job-name build-no))
-  (put-build buildviz-url job-name build-no build)
+  (storage/store-build! data-dir job-name build-no build)
   (when (some? junit-xml)
-    (put-junit-xml buildviz-url job-name build-no junit-xml)))
+    (store-junit-xml data-dir job-name build-no junit-xml)))
 
 ;; run
 
-(defn- emit-start [go-url buildviz-url sync-start-time pipelines]
-  (println "Go" (str go-url) (distinct (map :group pipelines)) "-> buildviz" (str buildviz-url))
+(defn- emit-start [go-url sync-start-time pipelines]
+  (println "Go" (str go-url) (distinct (map :group pipelines)))
   (print (format "Finding all pipeline runs for syncing (starting from %s)..."
                  (tf/unparse (:date-time tf/formatters) sync-start-time)))
   (flush)
@@ -105,10 +94,10 @@
   (println "done")
   pipeline-stages)
 
-(defn sync-stages [go-url buildviz-url sync-start-time selected-pipeline-group-names]
+(defn sync-stages [go-url data-dir sync-start-time selected-pipeline-group-names]
   (->> (goapi/get-pipelines go-url)
        (select-pipelines selected-pipeline-group-names)
-       (emit-start go-url buildviz-url sync-start-time)
+       (emit-start go-url sync-start-time)
        (mapcat pipeline->stages)
        (mapcat #(stage-instances-from go-url sync-start-time %))
        (sort-by :scheduled-time)
@@ -118,7 +107,7 @@
        (map #(add-pipeline-instance-for-stage-run go-url %))
        (map #(add-job-instances-for-stage-run go-url %))
        (map transform/stage-instances->builds)
-       (map #(put-to-buildviz buildviz-url %))
+       (map #(store data-dir %))
        (map progress/tick)
        dorun
        (progress/done)))
