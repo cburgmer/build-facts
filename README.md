@@ -19,8 +19,7 @@ server implementations.
 
 Have a build server running, e.g. an example Jenkins shipped with this repo:
 
-    $ cd examples/jenkins
-    $ ./run.sh start
+    $ ./examples/jenkins/run.sh start
 
 Now start the sync pointing to this instance
 
@@ -43,15 +42,21 @@ You'll receive the last two months of builds (use `--help` for options). Voila:
 
 Each file representing a build with the given job name and build id:
 
-    $ cat data/Test/6.json | jp
+    $ cat data/Deploy/2.json | jp
     {
-      "start": 1565122270460,
-      "end": 1565122272939,
+      "start": 1565121687863,
+      "end": 1565121702840,
       "outcome": "fail",
       "inputs": [
         {
           "revision": "edfb6bd410a6fd4a5814e29acc7b2bad99c37ecc",
-          "sourceId": "https://github.com/cburgmer/buildviz.git"
+          "sourceId": "TEST_GIT_COMMIT"
+        }
+      ],
+      "triggeredBy": [
+        {
+          "jobName": "Test",
+          "buildId": "4"
         }
       ]
     }
