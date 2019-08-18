@@ -9,6 +9,12 @@ servers:
 Currently it just dumps all the data into the current working directory under
 `./data`.
 
+## Goal
+
+Provide a simple way to download build and test metadata from CI/CD servers in a
+JSON structure for analysis. The format shall aim for consistency across build
+server implementations.
+
 ## Howto
 
 Have a build server running, e.g. an example Jenkins shipped with this repo:
