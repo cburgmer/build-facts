@@ -84,6 +84,5 @@ left off before
 This fork needs cleaning up:
 
 - Teamcity code needs to be migrated
-- Integration tests are broken
 - Java namespaces
 - DEVELOP and examples/ documentation is out of date

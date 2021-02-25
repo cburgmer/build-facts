@@ -4,27 +4,16 @@ set -eo pipefail
 readonly SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 readonly MAPPING_SOURCE="${SCRIPT_DIR}/teamcity.tar.gz"
-readonly DATA_DIR="${SCRIPT_DIR}/../../examples/data"
 
 readonly WIREMOCK_PORT="3342"
-readonly BUILDVIZ_PORT="3352"
 
 readonly WIREMOCK_BASE_URL="http://localhost:${WIREMOCK_PORT}"
-readonly BUILDVIZ_BASE_URL="http://localhost:${BUILDVIZ_PORT}"
 readonly SYNC_URL="http://localhost:${WIREMOCK_PORT}"
 readonly SYNC_USER="admin"
 readonly SYNC_PASSWORD="admin"
 
 
 readonly MAPPING_TMP_DIR="/tmp/record.wiremock.$$"
-
-start_buildviz() {
-    PORT="$BUILDVIZ_PORT" "${DATA_DIR}/run_buildviz.sh" start
-}
-
-stop_buildviz() {
-    "${DATA_DIR}/run_buildviz.sh" stop
-}
 
 start_wiremock() {
     mkdir "$MAPPING_TMP_DIR"
@@ -41,7 +30,7 @@ stop_wiremock() {
 }
 
 sync_builds() {
-    TEAMCITY_USER="$SYNC_USER" TEAMCITY_PASSWORD="$SYNC_PASSWORD" "${SCRIPT_DIR}/../../lein" run -m buildviz.teamcity.sync "$SYNC_URL" --buildviz="$BUILDVIZ_BASE_URL" --from 2000-01-01 -p SimpleSetup
+    TEAMCITY_USER="$SYNC_USER" TEAMCITY_PASSWORD="$SYNC_PASSWORD" "${SCRIPT_DIR}/../../lein" run -m buildviz.teamcity.sync "$SYNC_URL" --from 2000-01-01 -p SimpleSetup
 }
 
 ensure_user_agent() {
@@ -69,7 +58,6 @@ ensure_basic_auth() {
 }
 
 clean_up() {
-    stop_buildviz
     stop_wiremock
 }
 
@@ -86,7 +74,6 @@ main() {
     # Handle Ctrl+C and errors
     trap clean_up EXIT
 
-    start_buildviz
     start_wiremock
 
     sync_builds
