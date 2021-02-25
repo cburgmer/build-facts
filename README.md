@@ -86,3 +86,4 @@ This fork needs cleaning up:
 - Teamcity code needs to be migrated
 - Java namespaces
 - DEVELOP and examples/ documentation is out of date
+- ./go make_release is broken

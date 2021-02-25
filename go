@@ -13,22 +13,22 @@ goal_test_unit() {
     "${SCRIPT_DIR}/lein" do clean, test
 }
 
-goal_test_integration() {
+goal_test_smoke() {
     echo
-    echo "Running integration test against recorded endpoints."
+    echo "Running smoke test against recorded endpoints."
     echo "If this fails you might have changed how the endpoints are requested, and might want to record from scratch."
     echo "Testing buildviz.go.sync"
-    "${SCRIPT_DIR}/test/integration/test_gocd.sh"
+    "${SCRIPT_DIR}/test/smoke/test_gocd.sh"
     echo "Testing buildviz.jenkins.sync"
-    "${SCRIPT_DIR}/test/integration/test_jenkins.sh"
+    "${SCRIPT_DIR}/test/smoke/test_jenkins.sh"
     echo "Testing buildviz.teamcity.sync"
-    "${SCRIPT_DIR}/test/integration/test_teamcity.sh"
+    "${SCRIPT_DIR}/test/smoke/test_teamcity.sh"
 }
 
 goal_test() {
     goal_lint
     goal_test_unit
-    goal_test_integration
+    goal_test_smoke
 }
 
 goal_make_release() {
