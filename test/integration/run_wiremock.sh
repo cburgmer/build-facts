@@ -36,7 +36,7 @@ hint_at_logs() {
 }
 
 goal_install() {
-    local url="http://repo1.maven.org/maven2/com/github/tomakehurst/${ARTIFACT_NAME}/${VERSION}/${FILENAME}"
+    local url="https://repo1.maven.org/maven2/com/github/tomakehurst/${ARTIFACT_NAME}/${VERSION}/${FILENAME}"
     announce "Downloading wiremock"
     if [ -f "$FILEPATH" ]; then
         echo " already there"
@@ -44,7 +44,7 @@ goal_install() {
         echo -n " from ${url}"
         (
             cd "$SCRIPT_DIR"
-            curl --silent --fail -O "$url" > "$TMP_LOG"
+            curl -q --fail -O "$url" > "$TMP_LOG"
         )
         echo " done"
         rm "$TMP_LOG"
