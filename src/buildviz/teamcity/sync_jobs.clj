@@ -30,14 +30,14 @@
   (assoc build :tests (api/get-test-report teamcity-url (:id (:build build)))))
 
 
-(defn- store-junit-xml [data-dir job-name build-id test-results]
+(defn- store-test-results [data-dir job-name build-id test-results]
   (storage/store-testresults! data-dir job-name build-id (j/generate-string test-results)))
 
 (defn- store [data-dir {:keys [job-name build-id build test-results]}]
   (log/info (format "Syncing %s %s: build" job-name build-id))
   (storage/store-build! data-dir job-name build-id build)
   (when-not (empty? test-results)
-    (store-junit-xml data-dir job-name build-id test-results)))
+    (store-test-results data-dir job-name build-id test-results)))
 
 
 (defn- sync-oldest-first-to-deal-with-cancellation [builds]
