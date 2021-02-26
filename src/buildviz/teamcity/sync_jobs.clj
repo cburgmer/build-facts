@@ -2,6 +2,7 @@
   (:require [buildviz.teamcity
              [api :as api]
              [transform :as transform]]
+            [buildviz.storage :as storage]
             [buildviz.util
              [json :as json]
              [url :as url]]
@@ -29,28 +30,14 @@
   (assoc build :tests (api/get-test-report teamcity-url (:id (:build build)))))
 
 
-(defn- put-build [buildviz-url job-name build-id build]
-  (client/put (string/join [(url/with-plain-text-password buildviz-url) (templ/uritemplate "/builds{/job}{/build}" {"job" job-name "build" build-id})])
-              {:content-type :json
-               :body (json/to-string build)}))
+(defn- store-junit-xml [data-dir job-name build-id test-results]
+  (storage/store-testresults! data-dir job-name build-id (j/generate-string test-results)))
 
-(defn- put-test-results [buildviz-url job-name build-id test-results]
-  (client/put (string/join [(url/with-plain-text-password buildviz-url) (templ/uritemplate "/builds{/job}{/build}/testresults" {"job" job-name "build" build-id})])
-              {:content-type :json
-               :body (j/generate-string test-results)}))
-
-(defn- put-to-buildviz [buildviz-url {:keys [job-name build-id build test-results]}]
+(defn- store [data-dir {:keys [job-name build-id build test-results]}]
   (log/info (format "Syncing %s %s: build" job-name build-id))
-  (put-build buildviz-url job-name build-id build)
+  (storage/store-build! data-dir job-name build-id build)
   (when-not (empty? test-results)
-    (try
-      (put-test-results buildviz-url job-name build-id test-results)
-      (catch Exception e
-        (if-let [data (ex-data e)]
-          (do
-            (log/errorf "Unable to sync testresults for %s %s (status %s): %s" job-name build-id (:status data) (:body data))
-            (log/info "Offending content is:\n" test-results))
-          (log/errorf e "Unable to sync testresults for %s %s" job-name build-id))))))
+    (store-junit-xml data-dir job-name build-id test-results)))
 
 
 (defn- sync-oldest-first-to-deal-with-cancellation [builds]
@@ -62,22 +49,20 @@
 (defn- stop-at-first-non-finished-so-we-can-resume-later [builds]
   (take-while #(= "finished" (get-in % [:build :state])) builds))
 
-(defn- get-latest-synced-build-start [buildviz-url]
-  (let [response (client/get (string/join [(url/with-plain-text-password buildviz-url) "/status"]))
-        buildviz-status (j/parse-string (:body response) true)]
-    (when-let [latest-build-start (:latestBuildStart buildviz-status)]
-      (tc/from-long latest-build-start))))
+(defn- last-sync-date [builds]
+  (when builds
+    (tc/from-long (apply max (map :start builds)))))
 
-(defn- sync-start [buildviz-url default-sync-start user-sync-start]
-  (let [last-sync-date (get-latest-synced-build-start buildviz-url)]
+(defn- sync-start [data-dir default-sync-start user-sync-start]
+  (let [builds (seq (storage/load-builds data-dir))]
     (or user-sync-start
-        last-sync-date
+        (last-sync-date builds)
         default-sync-start)))
 
 
-(defn sync-jobs [teamcity-url buildviz-url projects default-sync-start user-sync-start]
-  (println "TeamCity" (str teamcity-url) projects "-> buildviz" (str buildviz-url))
-  (let [sync-start-time (sync-start buildviz-url default-sync-start user-sync-start)]
+(defn sync-jobs [teamcity-url data-dir projects default-sync-start user-sync-start]
+  (println "TeamCity" (str teamcity-url) projects)
+  (let [sync-start-time (sync-start data-dir default-sync-start user-sync-start)]
     (println (format "Finding all builds for syncing (starting from %s)..."
                      (tf/unparse (:date-time tf/formatters) sync-start-time)))
     (->> projects
@@ -87,7 +72,7 @@
          sync-oldest-first-to-deal-with-cancellation
          stop-at-first-non-finished-so-we-can-resume-later
          (map (comp progress/tick
-                    (partial put-to-buildviz buildviz-url)
+                    (partial store data-dir)
                     transform/teamcity-build->buildviz-build
                     (partial add-test-results teamcity-url)))
          dorun

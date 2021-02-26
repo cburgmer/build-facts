@@ -83,7 +83,7 @@ left off before
 
 This fork needs cleaning up:
 
-- Teamcity code needs to be migrated
-- Java namespaces
+- Teamcity syncs test results as JSON with wrong file ending
+- Remove code reference to buildviz to avoid confusion
 - DEVELOP and examples/ documentation is out of date
 - ./go make_release is broken
