@@ -61,8 +61,10 @@ start_server() {
 
 provision_pipeline() {
     local fly_bin="/tmp/fly.$$"
+    local os_name
+    os_name="$(uname -s)"
     {
-        curl -vL "${BASE_URL}/api/v1/cli?arch=amd64&platform=darwin" -o "$fly_bin"
+        curl -vL "${BASE_URL}/api/v1/cli?arch=amd64&platform=${os_name}" -o "$fly_bin"
         chmod a+x "$fly_bin"
 
         "$fly_bin" -t buildviz login -c "$BASE_URL" -u user -p password
