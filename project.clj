@@ -12,6 +12,7 @@
                  [clj-http "3.12.1"]
                  [clj-time "0.15.2"]
                  [cheshire "5.10.0"]
+                 [clj-commons/clj-yaml "0.7.0"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/tools.cli "1.0.194"]
                  [intervox/clj-progress "0.2.1"]
@@ -20,6 +21,7 @@
   :aot [buildviz.go.sync
         buildviz.jenkins.sync
         buildviz.teamcity.sync
+        buildviz.concourse.sync
         buildviz.data.junit-xml]
   :profiles {:dev {:dependencies [[clj-http-fake "1.0.3"]]
                    :plugins [[lein-ancient "1.0.0-RC3"]]}
