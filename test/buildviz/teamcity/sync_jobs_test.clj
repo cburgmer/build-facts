@@ -112,7 +112,8 @@
         (is (= ["10.json"
                 "11.json"]
                (->> (.listFiles (io/file data-dir "theProject job1"))
-                    (map #(.getName %)))))
+                    (map #(.getName %))
+                    sort)))
         (is (= ["42.json"]
                (->> (.listFiles (io/file data-dir "theProject job2"))
                     (map #(.getName %))))))))
@@ -171,7 +172,8 @@
                 "12.json"
                 "old_run.json"]
                (->> (.listFiles (io/file data-dir "theProject job1"))
-                    (map #(.getName %))))))))
+                    (map #(.getName %))
+                    sort))))))
 
   (testing "should sync from given start date"
     (let [build-start (t/from-time-zone (t/date-time 2016 4 10 0 2 0) t/utc)
@@ -195,7 +197,8 @@
         (is (= ["11.json"
                 "12.json"]
                (->> (.listFiles (io/file data-dir "theProject job1"))
-                    (map #(.getName %))))))))
+                    (map #(.getName %))
+                    sort))))))
 
   (testing "should sync test results"
     (let [data-dir (create-tmp-dir "test-sync-jobs")]
