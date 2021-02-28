@@ -41,7 +41,7 @@ container_exists() {
 }
 
 provision_container() {
-    docker container create -p 8080:8080 --name buildviz_jenkins_example jenkins/jenkins:2.168-alpine
+    docker container create -p 8080:8080 --name buildviz_jenkins_example jenkins/jenkins:2.263.4-lts-alpine
 }
 
 start_server() {
@@ -68,19 +68,28 @@ provision_jenkins() {
     echo " done"
 }
 
+csrf_crumb() {
+    local tmp_cookie_jar="$1"
+    curl -u "admin:admin" --cookie-jar "$tmp_cookie_jar" "${BASE_URL}/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,%22:%22,//crumb)"
+}
+
 configure_pipeline() {
     local job_config
     local job_name
     local view_config
     local view_name
+    local tmp_cookie_jar="/tmp/cookie_jar.$$"
+    local crumb
     announce "Configuring pipeline"
+    crumb="$(csrf_crumb "$tmp_cookie_jar")"
+
     (
         cd "$SCRIPT_DIR"/jobs
         for job_config in *; do
             # shellcheck disable=SC2001
             job_name=$( echo "$job_config" | sed s/.xml$// )
-            curl --fail -X POST --data-binary "@$job_config" -H "Content-Type: application/xml" "${BASE_URL}/createItem?name=${job_name}" &>> "$TMP_LOG"
-            curl --fail -X POST --data-binary "@$job_config" "${BASE_URL}/job/${job_name}/config.xml" &>> "$TMP_LOG" > /dev/null
+            curl --fail -X POST --data-binary "@$job_config" -H "Content-Type: application/xml" -H "$crumb" --cookie "$tmp_cookie_jar" "${BASE_URL}/createItem?name=${job_name}" &>> "$TMP_LOG"
+            curl --fail -X POST --data-binary "@$job_config" -H "$crumb" --cookie "$tmp_cookie_jar" "${BASE_URL}/job/${job_name}/config.xml" &>> "$TMP_LOG" > /dev/null
         done
     )
     (
@@ -88,10 +97,11 @@ configure_pipeline() {
         for view_config in *; do
             # shellcheck disable=SC2001
             view_name=$( echo "$view_config" | sed s/.xml$// )
-            curl --fail -X POST --data-binary "@$view_config" -H "Content-Type: application/xml" "${BASE_URL}/createView?name=${view_name}" &>> "$TMP_LOG"
-            curl --fail -X POST --data-binary "@$view_config" "${BASE_URL}/view/${view_name}/config.xml" &>> "$TMP_LOG"
+            curl --fail -X POST --data-binary "@$view_config" -H "Content-Type: application/xml" -H "$crumb" --cookie "$tmp_cookie_jar" "${BASE_URL}/createView?name=${view_name}" &>> "$TMP_LOG"
+            curl --fail -X POST --data-binary "@$view_config" -H "$crumb" --cookie "$tmp_cookie_jar" "${BASE_URL}/view/${view_name}/config.xml" &>> "$TMP_LOG"
         done
     )
+    rm "$tmp_cookie_jar"
     echo " done"
 }
 
@@ -116,13 +126,18 @@ wait_for_pipeline_to_be_schedulable() {
 }
 
 run_builds() {
+    local tmp_cookie_jar="/tmp/cookie_jar.$$"
+    local crumb
     local run
+    crumb="$(csrf_crumb "$tmp_cookie_jar")"
+
     for run in 1 2 3 4 5; do
         announce "Triggering build run ${run}"
         wait_for_pipeline_to_be_schedulable
-        curl --fail -X POST "${BASE_URL}/job/Test/build" &>> "$TMP_LOG"
+        curl --fail -X POST  -H "$crumb" --cookie "$tmp_cookie_jar" "${BASE_URL}/job/Test/build" &>> "$TMP_LOG"
         echo
     done
+    rm "$tmp_cookie_jar"
 }
 
 goal_start() {
