@@ -23,6 +23,8 @@ goal_test_smoke() {
     "${SCRIPT_DIR}/test/smoke/test_jenkins.sh"
     echo "Testing buildviz.teamcity.sync"
     "${SCRIPT_DIR}/test/smoke/test_teamcity.sh"
+    echo "Testing buildviz.concourse.sync"
+    "${SCRIPT_DIR}/test/smoke/test_concourse.sh"
 }
 
 goal_test() {
