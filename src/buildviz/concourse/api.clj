@@ -31,7 +31,16 @@
       (try
         (fetch-user config)
         (catch Exception e
-          (if-let [data (ex-data e)]
-            (throw (Exception. (format "Login status returned not OK (%s): %s" (:status data) (:body data))))
-            (throw (Exception. (format "Login status returned not OK: %s" e))))))
-      (throw (Exception. (format "No token found for concourse target '%s'" concourse-target))))))
+          (let [help-message (format "Please run 'fly login --target %s'." concourse-target)]
+            (if-let [data (ex-data e)]
+              (throw (Exception. (format "Login status returned not OK (%s): %s. %s"
+                                         (:status data)
+                                         (:body data)
+                                         help-message)))
+              (throw (Exception. (format "Login status returned not OK: %s. %s"
+                                         e
+                                         help-message)))))))
+      (throw (Exception.
+              (format "No token found for concourse target '%s'. Please run 'fly login --target %s -c CONCOURSE_URL' or provide a correct target."
+                      concourse-target
+                      concourse-target))))))
