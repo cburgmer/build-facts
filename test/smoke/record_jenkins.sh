@@ -5,13 +5,10 @@ readonly SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 readonly MAPPING_TARGET="${SCRIPT_DIR}/jenkins.tar.gz"
 readonly EXAMPLE_DIR="${SCRIPT_DIR}/../../examples/jenkins"
-readonly DATA_DIR="${SCRIPT_DIR}/../../examples/data"
 
 readonly WIREMOCK_PORT="3341"
-readonly BUILDVIZ_PORT="3351"
 
 readonly WIREMOCK_BASE_URL="http://localhost:${WIREMOCK_PORT}"
-readonly BUILDVIZ_BASE_URL="http://localhost:${BUILDVIZ_PORT}"
 readonly JENKINS_BASE_URL="http://localhost:8080"
 readonly SYNC_URL="$WIREMOCK_BASE_URL"
 
@@ -28,14 +25,6 @@ start_container() {
 
 stop_container() {
     "$EXAMPLE_DIR/run.sh" stop
-}
-
-start_buildviz() {
-    PORT="$BUILDVIZ_PORT" "${DATA_DIR}/run_buildviz.sh" start
-}
-
-stop_buildviz() {
-    "${DATA_DIR}/run_buildviz.sh" stop
 }
 
 start_wiremock() {
@@ -61,12 +50,11 @@ stop_wiremock() {
 }
 
 sync_builds() {
-    "${SCRIPT_DIR}/../../lein" run -m buildviz.jenkins.sync "$SYNC_URL" --buildviz="$BUILDVIZ_BASE_URL" --from 2000-01-01
+    "${SCRIPT_DIR}/../../lein" run -m buildviz.jenkins.sync "$SYNC_URL" --from 2000-01-01
 }
 
 clean_up() {
     stop_container
-    stop_buildviz
     stop_wiremock
 }
 
@@ -84,7 +72,6 @@ main() {
     trap clean_up EXIT
 
     start_container
-    start_buildviz
     start_wiremock
 
     sync_builds
