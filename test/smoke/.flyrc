@@ -1,0 +1,7 @@
+targets:
+  mock-auth:
+    api: http://localhost:3340
+    team: main
+    token:
+      type: bearer
+      value: mock-bearer-token
