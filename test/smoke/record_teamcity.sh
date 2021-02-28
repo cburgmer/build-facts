@@ -7,10 +7,8 @@ readonly MAPPING_TARGET="${SCRIPT_DIR}/teamcity.tar.gz"
 readonly EXAMPLE_DIR="${SCRIPT_DIR}/../../examples/teamcity"
 
 readonly WIREMOCK_PORT="3342"
-readonly BUILDVIZ_PORT="3352"
 
 readonly WIREMOCK_BASE_URL="http://localhost:${WIREMOCK_PORT}"
-readonly BUILDVIZ_BASE_URL="http://localhost:${BUILDVIZ_PORT}"
 readonly TEAMCITY_BASE_URL="http://localhost:8111"
 readonly SYNC_URL="http://admin:admin@localhost:${WIREMOCK_PORT}"
 
