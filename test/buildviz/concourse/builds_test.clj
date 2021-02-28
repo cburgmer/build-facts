@@ -46,9 +46,24 @@
                                                                 :start_time 1234
                                                                 :end_time 9876}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
-                          :bearer-token "fake-token"})
+                                    :bearer-token "fake-token"})
              '({:job-name "my-pipeline my-job"
                 :build-id "42"
                 :build {:outcome "pass"
                         :start 1234000
+                        :end 9876000}})))))
+
+  (testing "should handle aborted build without start time"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:name "42"
+                                                                :status "succeeded"
+                                                                :end_time 9876}))
+      (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
+                                    :bearer-token "fake-token"})
+             '({:job-name "my-pipeline my-job"
+                :build-id "42"
+                :build {:outcome "pass"
+                        :start 9876000
                         :end 9876000}}))))))
