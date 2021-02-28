@@ -14,6 +14,7 @@
   (let [config (api/config-for concourse-target)]
     (println (format "Concourse %s (%s)" (:base-url config) concourse-target) )
     (api/test-login config)
+    (println "Finding all builds for syncing...")
     (->> (api/all-jobs config)
          (mapcat #(api/all-builds-for-job config %))
          (progress/init "Syncing")

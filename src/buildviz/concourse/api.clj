@@ -32,7 +32,8 @@
   (let [response (client/get (string/join [base-url relative-url])
                              {:accept "application/json"
                               :headers {"User-Agent" "buildviz (https://github.com/cburgmer/buildviz)"
-                                        "Authorization" (format "Bearer %s" bearer-token)}})]
+                                        "Authorization" (format "Bearer %s" bearer-token)}
+                              :cookie-policy :standard})]
     (log/info (format "Retrieved %s: %s" relative-url (:status response)))
     (j/parse-string (:body response) true)))
 
