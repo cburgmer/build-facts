@@ -1,31 +1,9 @@
 (ns buildviz.concourse.api
   (:require [cheshire.core :as j]
-            [clojure.java.io :as io]
             [clojure.string :as string]
-            [clj-yaml.core :as yaml]
             [clj-http.client :as client]
             [uritemplate-clj.core :as templ]
             [clojure.tools.logging :as log]))
-
-(defn config-for [concourse-target]
-  (let [flyrc (io/file (System/getProperty "user.home") ".flyrc")
-        config (-> (slurp flyrc)
-                   (yaml/parse-string :keywords false)
-                   (get "targets")
-                   (get concourse-target))]
-    (if (= (-> config
-                 (get "token")
-                 (get "type"))
-             "bearer")
-      {:base-url (get config "api")
-       :bearer-token (-> config
-                         (get "token")
-                         (get "value"))
-       :concourse-target concourse-target}
-      (throw (Exception.
-              (format "No token found for concourse target '%s'. Please run 'fly login --target %s -c CONCOURSE_URL' or provide a correct target."
-                      concourse-target
-                      concourse-target))))))
 
 (defn- get-json [relative-url {:keys [base-url bearer-token]}]
   (log/info (format "Retrieving %s" relative-url))

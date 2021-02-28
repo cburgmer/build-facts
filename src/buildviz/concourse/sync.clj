@@ -1,8 +1,11 @@
 (ns buildviz.concourse.sync
   (:gen-class)
-  (:require [buildviz.concourse.sync-jobs :as sync-jobs]
+  (:require [buildviz.concourse.builds :as builds]
+            [buildviz.storage :as storage]
+            [clj-progress.core :as progress]
             [clojure.string :as string]
-            [clojure.tools.cli :refer [parse-opts]]))
+            [clojure.tools.cli :refer [parse-opts]]
+            [clojure.tools.logging :as log]))
 
 (def data-dir "data")
 
@@ -30,6 +33,21 @@
     (println msg)
     (System/exit 1)))
 
+(defn- store [{:keys [job-name build-id build]}]
+  (log/info (format "Syncing %s %s: build" job-name build-id))
+  (storage/store-build! data-dir job-name build-id build))
+
+(defn sync-jobs [concourse-target]
+  (let [config (builds/config-for concourse-target)]
+    (println (format "Concourse %s (%s)" (:base-url config) concourse-target) )
+    (println "Finding all builds for syncing...")
+    (->> (builds/concourse-builds config)
+         (progress/init "Syncing")
+         (map store)
+         (map progress/tick)
+         dorun
+         (progress/done))))
+
 (defn -main [& c-args]
   (let [args (parse-opts c-args cli-options)]
     (when (:help (:options args))
@@ -42,4 +60,4 @@
     (let [concourse-target (first (:arguments args))]
       (assert-parameter #(some? concourse-target) "The target for Concourse is required. Try --help.")
 
-      (sync-jobs/sync-jobs concourse-target data-dir))))
+      (sync-jobs concourse-target))))
