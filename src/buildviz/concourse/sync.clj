@@ -43,8 +43,8 @@
     (println "Finding all builds for syncing...")
     (->> (builds/concourse-builds config)
          (progress/init "Syncing")
-         (map store)
          (map progress/tick)
+         (map store)
          dorun
          (progress/done))))
 

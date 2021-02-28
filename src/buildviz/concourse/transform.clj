@@ -3,9 +3,9 @@
 (defn- full-job-name [pipeline_name job_name]
   (format "%s %s" pipeline_name job_name))
 
-(defn concourse->build [{:keys [pipeline_name job_name id status start_time end_time]}]
+(defn concourse->build [{:keys [pipeline_name job_name name status start_time end_time]}]
   {:job-name (full-job-name pipeline_name job_name)
-   :build-id id
+   :build-id name
    :build {:outcome (if (= status "succeeded")
                       "pass"
                       "fail")
