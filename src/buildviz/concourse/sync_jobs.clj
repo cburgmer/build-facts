@@ -1,21 +1,24 @@
 (ns buildviz.concourse.sync-jobs
   (:require [buildviz.concourse
-             [api :as api]]
+             [api :as api]
+             [transform :as transform]]
             [buildviz.storage :as storage]
-            [buildviz.util
-             [json :as json]
-             [url :as url]]
-            [cheshire.core :as j]
-            [clj-http.client :as client]
             [clj-progress.core :as progress]
-            [clj-time
-             [coerce :as tc]
-             [core :as t]
-             [format :as tf]]
-            [clojure.string :as string]
-            [clojure.tools.logging :as log]
-            [uritemplate-clj.core :as templ]))
+            [clojure.tools.logging :as log]))
 
-(defn sync-jobs [concourse-target]
-  (println "Concourse" concourse-target)
-  (api/test-login concourse-target))
+(defn- store [data-dir {:keys [job-name build-id build]}]
+  (log/info (format "Syncing %s %s: build" job-name build-id))
+  (storage/store-build! data-dir job-name build-id build))
+
+(defn sync-jobs [concourse-target data-dir]
+  (let [config (api/config-for concourse-target)]
+    (println (format "Concourse %s (%s)" (:base-url config) concourse-target) )
+    (api/test-login config)
+    (->> (api/all-jobs config)
+         (mapcat #(api/all-builds-for-job config %))
+         (progress/init "Syncing")
+         (map (comp progress/tick
+                    (partial store data-dir)
+                    transform/concourse->build))
+         dorun
+         (progress/done))))

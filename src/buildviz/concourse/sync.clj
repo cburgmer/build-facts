@@ -4,6 +4,8 @@
             [clojure.string :as string]
             [clojure.tools.cli :refer [parse-opts]]))
 
+(def data-dir "data")
+
 (def cli-options
   [["-h" "--help"]])
 
@@ -40,4 +42,4 @@
     (let [concourse-target (first (:arguments args))]
       (assert-parameter #(some? concourse-target) "The target for Concourse is required. Try --help.")
 
-      (sync-jobs/sync-jobs concourse-target))))
+      (sync-jobs/sync-jobs concourse-target data-dir))))
