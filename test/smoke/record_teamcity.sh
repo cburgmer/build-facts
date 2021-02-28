@@ -5,7 +5,6 @@ readonly SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 readonly MAPPING_TARGET="${SCRIPT_DIR}/teamcity.tar.gz"
 readonly EXAMPLE_DIR="${SCRIPT_DIR}/../../examples/teamcity"
-readonly DATA_DIR="${SCRIPT_DIR}/../../examples/data"
 
 readonly WIREMOCK_PORT="3342"
 readonly BUILDVIZ_PORT="3352"
@@ -30,14 +29,6 @@ stop_container() {
     "$EXAMPLE_DIR/run.sh" stop
 }
 
-start_buildviz() {
-    PORT="$BUILDVIZ_PORT" "${DATA_DIR}/run_buildviz.sh" start
-}
-
-stop_buildviz() {
-    "${DATA_DIR}/run_buildviz.sh" stop
-}
-
 start_wiremock() {
     "${SCRIPT_DIR}/run_wiremock.sh" install
     mkdir -p "$MAPPING_TMP_DIR"
@@ -51,7 +42,7 @@ stop_wiremock() {
 }
 
 sync_builds() {
-    "${SCRIPT_DIR}/../../lein" run -m buildviz.teamcity.sync "$SYNC_URL" --buildviz="$BUILDVIZ_BASE_URL" --from 2000-01-01 -p SimpleSetup
+    "${SCRIPT_DIR}/../../lein" run -m buildviz.teamcity.sync "$SYNC_URL" --from 2000-01-01 -p SimpleSetup
 }
 
 start_recording() {
@@ -70,7 +61,6 @@ finish_recording() {
 
 clean_up() {
     stop_container
-    stop_buildviz
     stop_wiremock
     echo
 }
@@ -89,7 +79,6 @@ main() {
     trap clean_up EXIT
 
     start_container
-    start_buildviz
     start_wiremock
     start_recording
 
