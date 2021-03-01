@@ -80,7 +80,7 @@
     (parse-build-properties build-properties)))
 
 
-;;/go/api/stages/:pipeline_name/:stage_name/history
+;; /go/api/stages/:pipeline_name/:stage_name/history[/:offset]
 ;; requires v14.3.0
 
 (defn- get-stage-instances [go-url pipeline stage-name offset]

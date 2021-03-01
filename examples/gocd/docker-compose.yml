@@ -14,5 +14,5 @@ services:
     volumes:
       - ./scripts:/scripts
     environment:
-      GO_SERVER_URL: "https://server:8154/go"
+      GO_SERVER_URL: "http://server:8153/go"
       AGENT_AUTO_REGISTER_KEY: "ab455494-52a3-4ce7-b0cc-d38fbdc0aea9"
