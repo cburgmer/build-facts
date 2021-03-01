@@ -33,7 +33,8 @@
                   true))
 
 
-;; /api/jobs/%d.xml
+;; /go/api/jobs/:job_id.xml
+;; requires v14.3.0
 
 (defn- handle-missing-start-time-when-cancelled [build-start-time build-end-time]
   (if (nil? build-start-time)
@@ -79,7 +80,8 @@
     (parse-build-properties build-properties)))
 
 
-;; /api/stages/%pipeline/%stage/history
+;;/go/api/stages/:pipeline_name/:stage_name/history
+;; requires v14.3.0
 
 (defn- get-stage-instances [go-url pipeline stage-name offset]
   (let [stage-history (get-json go-url (templ/uritemplate "/api/stages{/pipeline}{/stage}/history{/offset}"
@@ -97,14 +99,16 @@
   (get-stage-instances go-url pipeline stage 0))
 
 
-;; /api/pipelines/%pipelines/instance/%run
+;; /go/api/pipelines/:pipeline_name/instance/:pipeline_counter
+;; requires v15.1.0
 
 (defn get-pipeline-instance [go-url pipeline-name run]
   (get-json go-url (templ/uritemplate "/api/pipelines{/pipeline}/instance{/run}"
                                       {"pipeline" pipeline-name
                                        "run" run})))
 
-;; /api/config/pipeline_groups
+;; /go/api/config/pipeline_groups
+;; requires v14.3.0
 
 (defn- groups->pipelines [{group-name :name pipelines :pipelines}]
   (map #(assoc % :group group-name) pipelines))
@@ -114,7 +118,8 @@
     (mapcat groups->pipelines pipeline-groups)))
 
 
-;; /files/%pipeline/%run/%stage/%run/%job.json
+;; /go/files/:pipeline_name/:pipeline_counter/:stage_name/:stage_counter/:job_name.json
+;; requires v14.3.0
 
 (defn- looks-like-xml? [file-name]
   (.endsWith file-name "xml"))
