@@ -10,6 +10,6 @@ services:
 
   agent:
     image: jetbrains/teamcity-minimal-agent:2020.2.2
-    restart: always
+    restart: unless-stopped
     environment:
       SERVER_URL: "http://server:8111"
