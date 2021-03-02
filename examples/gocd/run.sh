@@ -65,7 +65,7 @@ start_server() {
 }
 
 pipeline_schedulable() {
-    curl --silent --fail "${BASE_URL}/api/pipelines/Example/status" -H 'Accept: application/vnd.go.cd.v1+json' | grep '"schedulable"' | grep 'true' &>> "$TMP_LOG"
+    curl --silent --fail "${BASE_URL}/api/pipelines/Example/status" | grep '"schedulable":true' &>> "$TMP_LOG"
 }
 
 wait_for_pipeline_to_be_schedulable() {
