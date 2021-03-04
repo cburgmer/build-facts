@@ -59,6 +59,18 @@ start_server() {
     echo " done"
 }
 
+has_started_builds() {
+    "$fly_bin" -t buildviz builds | grep started > /dev/null
+}
+
+wait_for_pipeline_to_be_schedulable() {
+    sleep 10
+    until ! has_started_builds ; do
+        printf '.'
+        sleep 5
+    done
+}
+
 provision_pipeline() {
     local fly_bin="/tmp/fly.$$"
     local os_name
@@ -68,12 +80,27 @@ provision_pipeline() {
         chmod a+x "$fly_bin"
 
         "$fly_bin" -t buildviz login -c "$BASE_URL" -u user -p password
+
+        "$fly_bin" -t buildviz set-pipeline -p anotherpipeline -c anotherpipeline.yml -n
+        "$fly_bin" -t buildviz unpause-pipeline -p anotherpipeline
+        "$fly_bin" -t buildviz unpause-job -j anotherpipeline/hello-world
+        "$fly_bin" -t buildviz trigger-job -j anotherpipeline/hello-world
+
         "$fly_bin" -t buildviz set-pipeline -p pipeline -c pipeline.yml -n
         "$fly_bin" -t buildviz unpause-pipeline -p pipeline
-        "$fly_bin" -t buildviz unpause-job -j pipeline/hello-world
-        "$fly_bin" -t buildviz trigger-job -j pipeline/hello-world
-        rm "$fly_bin"
+        "$fly_bin" -t buildviz unpause-job -j pipeline/build
+        "$fly_bin" -t buildviz unpause-job -j pipeline/deploy
+        "$fly_bin" -t buildviz unpause-job -j pipeline/smoketest
     } &>> "$TMP_LOG"
+
+    for run in 1 2 3 4 5; do
+        announce "Triggering build run ${run}"
+        "$fly_bin" -t buildviz trigger-job -j pipeline/build &>> "$TMP_LOG"
+        wait_for_pipeline_to_be_schedulable
+        echo
+    done
+
+    rm "$fly_bin" &>> "$TMP_LOG"
 }
 
 goal_start() {

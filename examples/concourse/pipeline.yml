@@ -1,12 +1,85 @@
+resource_types:
+  - name: keyval
+    type: docker-image
+    source:
+      repository: swce/keyval-resource
+
+resources:
+  - name: keyval
+    type: keyval
+
 jobs:
-- name: hello-world
-  plan:
-  - task: say-hello
-    config:
-      platform: linux
-      image_resource:
-        type: docker-image
-        source: {repository: alpine}
-      run:
-        path: echo
-        args: ["Hello, world!"]
+  - name: build
+    plan:
+      - task: build
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: alpine}
+          outputs:
+            - name: keyvalout
+          run:
+            path: sh
+            args:
+              - -xc
+              - |
+                RUNTIME=$(( RANDOM % 10 ))
+                sleep $RUNTIME
+
+                OUTCOME=$(( RANDOM % 3 ))
+                if [ $OUTCOME -eq 0 ]; then
+                  exit 1
+                fi
+
+                echo 'dont=care' > ./keyvalout/keyval.properties
+      - put: keyval
+        params: {file: keyvalout/keyval.properties}
+
+  - name: deploy
+    plan:
+      - get: keyval
+        passed: [build]
+        trigger: true
+      - task: deploy
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: alpine}
+          run:
+            path: sh
+            args:
+              - -xc
+              - |
+                RUNTIME=$(( RANDOM % 10 ))
+                sleep $RUNTIME
+
+                OUTCOME=$(( RANDOM % 3 ))
+                if [ $OUTCOME -eq 0 ]; then
+                  exit 1
+                fi
+
+  - name: smoketest
+    plan:
+      - get: keyval
+        passed: [deploy]
+        trigger: true
+      - task: deploy
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: alpine}
+          run:
+            path: sh
+            args:
+              - -xc
+              - |
+                RUNTIME=$(( RANDOM % 10 ))
+                sleep $RUNTIME
+
+                OUTCOME=$(( RANDOM % 2 ))
+                if [ $OUTCOME -eq 0 ]; then
+                  exit 1
+                fi
