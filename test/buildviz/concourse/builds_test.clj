@@ -43,7 +43,7 @@
        (mapcat identity) ; flatten once
        (into {})))
 
-(defn- epoch-time-in-s [& params]
+(defn- unix-time-in-s [& params]
   (/ (tc/to-long (apply t/date-time params))
      1000))
 
@@ -56,8 +56,8 @@
                                                                {:id 4
                                                                 :name "42"
                                                                 :status "succeeded"
-                                                                :start_time (epoch-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (epoch-time-in-s 2016 1 1 10 0 1)}))
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"}
                                    beginning-of-2016)
@@ -74,8 +74,8 @@
                                                                {:id 4
                                                                 :name "42"
                                                                 :status "failed"
-                                                                :start_time (epoch-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (epoch-time-in-s 2016 1 1 10 0 1)}))
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"}
                                    beginning-of-2016)
@@ -91,7 +91,7 @@
                                                   (some-builds "my-team" "my-pipeline" "my-job"
                                                                {:name "42"
                                                                 :status "aborted"
-                                                                :end_time (epoch-time-in-s 2016 1 1 10 0 1)}))
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"}
                                    beginning-of-2016)
@@ -108,32 +108,32 @@
                                                                {:id 5
                                                                 :name "43"
                                                                 :status "succeeded"
-                                                                :start_time (epoch-time-in-s 2016 2 1 12 0 0)
-                                                                :end_time (epoch-time-in-s 2016 2 1 12 0 1)}
+                                                                :start_time (unix-time-in-s 2016 2 1 12 0 0)
+                                                                :end_time (unix-time-in-s 2016 2 1 12 0 1)}
                                                                {:id 4
                                                                 :name "42"
                                                                 :status "succeeded"
-                                                                :start_time (epoch-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (epoch-time-in-s 2016 1 1 10 0 1)})
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                   (some-builds-up-to 4
                                                                      "my-team" "my-pipeline" "my-job"
                                                                      {:id 4
                                                                       :name "42"
                                                                       :status "succeeded"
-                                                                      :start_time (epoch-time-in-s 2016 1 1 10 0 0)
-                                                                      :end_time (epoch-time-in-s 2016 1 1 10 0 1)}
+                                                                      :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                      :end_time (unix-time-in-s 2016 1 1 10 0 1)}
                                                                      {:id 2
                                                                       :name "41"
                                                                       :status "succeeded"
-                                                                      :start_time (epoch-time-in-s 2016 1 1 2 0 0)
-                                                                      :end_time (epoch-time-in-s 2016 1 1 2 0 1)})
+                                                                      :start_time (unix-time-in-s 2016 1 1 2 0 0)
+                                                                      :end_time (unix-time-in-s 2016 1 1 2 0 1)})
                                                   (some-builds-up-to 2
                                                                      "my-team" "my-pipeline" "my-job"
                                                                      {:id 2
                                                                       :name "41"
                                                                       :status "succeeded"
-                                                                      :start_time (epoch-time-in-s 2016 1 1 2 0 0)
-                                                                      :end_time (epoch-time-in-s 2016 1 1 2 0 1)}))
+                                                                      :start_time (unix-time-in-s 2016 1 1 2 0 0)
+                                                                      :end_time (unix-time-in-s 2016 1 1 2 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"}
                                    beginning-of-2016)
@@ -160,23 +160,23 @@
                                                                {:id 5
                                                                 :name "43"
                                                                 :status "succeeded"
-                                                                :start_time (epoch-time-in-s 2016 2 1 12 0 0)
-                                                                :end_time (epoch-time-in-s 2016 2 1 12 0 1)}
+                                                                :start_time (unix-time-in-s 2016 2 1 12 0 0)
+                                                                :end_time (unix-time-in-s 2016 2 1 12 0 1)}
                                                                {:id 4
                                                                 :name "42"
                                                                 :status "succeeded"
-                                                                :start_time (epoch-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (epoch-time-in-s 2016 1 1 10 0 1)}
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}
                                                                {:id 2
                                                                 :name "41"
                                                                 :status "succeeded"
-                                                                :start_time (epoch-time-in-s 2015 12 31 10 0 0)
-                                                                :end_time (epoch-time-in-s 2015 12 31 10 0 1)}
+                                                                :start_time (unix-time-in-s 2015 12 31 10 0 0)
+                                                                :end_time (unix-time-in-s 2015 12 31 10 0 1)}
                                                                {:id 1
                                                                 :name "40"
                                                                 :status "succeeded"
-                                                                :start_time (epoch-time-in-s 2015 12 30 10 0 0)
-                                                                :end_time (epoch-time-in-s 2015 12 30 10 0 1)}))
+                                                                :start_time (unix-time-in-s 2015 12 30 10 0 0)
+                                                                :end_time (unix-time-in-s 2015 12 30 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"}
                                    beginning-of-2016)
@@ -199,24 +199,24 @@
                                                                {:id 4
                                                                 :name "42"
                                                                 :status "succeeded"
-                                                                :start_time (epoch-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (epoch-time-in-s 2016 1 1 10 0 1)}
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}
                                                                {:id 2
                                                                 :name "41"
                                                                 :status "succeeded"
-                                                                :start_time (epoch-time-in-s 2015 12 31 10 0 0)
-                                                                :end_time (epoch-time-in-s 2015 12 31 10 0 1)})
+                                                                :start_time (unix-time-in-s 2015 12 31 10 0 0)
+                                                                :end_time (unix-time-in-s 2015 12 31 10 0 1)})
                                                   (some-builds "my-team" "my-pipeline" "another-job"
                                                                {:id 3
                                                                 :name "10"
                                                                 :status "succeeded"
-                                                                :start_time (epoch-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (epoch-time-in-s 2016 1 1 10 0 1)}
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}
                                                                {:id 1
                                                                 :name "9"
                                                                 :status "succeeded"
-                                                                :start_time (epoch-time-in-s 2015 12 31 10 0 0)
-                                                                :end_time (epoch-time-in-s 2015 12 31 10 0 1)}))
+                                                                :start_time (unix-time-in-s 2015 12 31 10 0 0)
+                                                                :end_time (unix-time-in-s 2015 12 31 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"}
                                    beginning-of-2016)
