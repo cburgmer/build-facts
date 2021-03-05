@@ -15,8 +15,15 @@
 
 (def two-months-ago (t/minus (.withTimeAtStartOfDay (l/local-now)) (t/months 2)))
 
+(def tz (t/default-time-zone))
+
+(def date-formatter (tf/formatter tz "YYYY-MM-dd" "YYYY/MM/dd" "YYYYMMdd" "dd.MM.YYYY"))
+
 (def cli-options
-  [["-h" "--help"]])
+  [["-f" "--from DATE" "Date from which on builds are loaded"
+    :id :sync-start-time
+    :parse-fn #(tf/parse date-formatter %)]
+   ["-h" "--help"]])
 
 (defn usage [options-summary]
   (string/join "\n"
@@ -64,7 +71,9 @@
       (println (string/join "\n" (:errors args)))
       (System/exit 1))
 
-    (let [concourse-target (first (:arguments args))]
+    (let [concourse-target (first (:arguments args))
+          sync-start-time (:sync-start-time (:options args))]
       (assert-parameter #(some? concourse-target) "The target for Concourse is required. Try --help.")
 
-      (sync-jobs concourse-target two-months-ago))))
+      (sync-jobs concourse-target (or sync-start-time
+                                      two-months-ago)))))
