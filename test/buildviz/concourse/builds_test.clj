@@ -189,4 +189,44 @@
                 :build-id "42"
                 :build {:outcome "pass"
                         :start 1451642400000
+                        :end 1451642401000}})))))
+
+  (testing "should not confuse date of multiple jobs"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job")
+                                                            (a-job "my-team" "my-pipeline" "another-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "succeeded"
+                                                                :start_time (epoch-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (epoch-time-in-s 2016 1 1 10 0 1)}
+                                                               {:id 2
+                                                                :name "41"
+                                                                :status "succeeded"
+                                                                :start_time (epoch-time-in-s 2015 12 31 10 0 0)
+                                                                :end_time (epoch-time-in-s 2015 12 31 10 0 1)})
+                                                  (some-builds "my-team" "my-pipeline" "another-job"
+                                                               {:id 3
+                                                                :name "10"
+                                                                :status "succeeded"
+                                                                :start_time (epoch-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (epoch-time-in-s 2016 1 1 10 0 1)}
+                                                               {:id 1
+                                                                :name "9"
+                                                                :status "succeeded"
+                                                                :start_time (epoch-time-in-s 2015 12 31 10 0 0)
+                                                                :end_time (epoch-time-in-s 2015 12 31 10 0 1)}))
+      (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
+                                    :bearer-token "fake-token"}
+                                   beginning-of-2016)
+             '({:job-name "my-pipeline my-job"
+                :build-id "42"
+                :build {:outcome "pass"
+                        :start 1451642400000
+                        :end 1451642401000}}
+               {:job-name "my-pipeline another-job"
+                :build-id "10"
+                :build {:outcome "pass"
+                        :start 1451642400000
                         :end 1451642401000}}))))))

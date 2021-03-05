@@ -28,9 +28,12 @@
                       concourse-target
                       concourse-target))))))
 
+(defn- builds-for-job [config sync-start-time job]
+  (->> (api/all-builds-for-job config job)
+       (map transform/concourse->build)
+       (take-while #(t/after? (tc/from-long (:start (:build %))) sync-start-time))))
+
 (defn concourse-builds [config sync-start-time]
   (api/test-login config)
   (->> (api/all-jobs config)
-       (mapcat #(api/all-builds-for-job config %))
-       (map transform/concourse->build)
-       (take-while #(t/after? (tc/from-long (:start (:build %))) sync-start-time))))
+       (mapcat #(builds-for-job config sync-start-time %))))
