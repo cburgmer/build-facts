@@ -33,9 +33,16 @@
 (defn all-jobs [config]
   (get-json "/api/v1/jobs" config))
 
-(defn all-builds-for-job [config {:keys [team_name pipeline_name name] :as job}]
-  (get-json (templ/uritemplate "/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/builds"
-                               {"team_name" team_name
-                                "pipeline_name" pipeline_name
-                                "job_name" name})
-            config))
+(defn- builds-for-job [config {:keys [team_name pipeline_name name] :as job} up-to-id]
+  (let [builds (get-json (templ/uritemplate "/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/builds?to={id}"
+                                            {"team_name" team_name
+                                             "pipeline_name" pipeline_name
+                                             "job_name" name
+                                             "id" up-to-id})
+                         config)]
+    (dedupe (concat builds
+                    (when (> (count builds) 1)
+                      (lazy-seq (builds-for-job config job (:id (last builds)))))))))
+
+(defn all-builds-for-job [config job]
+  (builds-for-job config job ""))
