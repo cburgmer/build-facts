@@ -40,9 +40,12 @@
                                              "job_name" name
                                              "id" up-to-id})
                          config)]
-    (dedupe (concat builds
-                    (when (> (count builds) 1)
-                      (lazy-seq (builds-for-job config job (:id (last builds)))))))))
+    (lazy-cat builds
+              (when (> (count builds) 1)
+                (let [last-build-id (:id (last builds))]
+                  (remove #(= (:id %)
+                              last-build-id)
+                          (builds-for-job config job last-build-id)))))))
 
 (defn all-builds-for-job [config job]
   (builds-for-job config job ""))

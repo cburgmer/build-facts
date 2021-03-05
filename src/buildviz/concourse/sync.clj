@@ -3,11 +3,17 @@
   (:require [buildviz.concourse.builds :as builds]
             [buildviz.storage :as storage]
             [clj-progress.core :as progress]
+            [clj-time
+             [core :as t]
+             [format :as tf]
+             [local :as l]]
             [clojure.string :as string]
             [clojure.tools.cli :refer [parse-opts]]
             [clojure.tools.logging :as log]))
 
 (def data-dir "data")
+
+(def two-months-ago (t/minus (.withTimeAtStartOfDay (l/local-now)) (t/months 2)))
 
 (def cli-options
   [["-h" "--help"]])
@@ -37,11 +43,12 @@
   (log/info (format "Syncing %s %s: build" job-name build-id))
   (storage/store-build! data-dir job-name build-id build))
 
-(defn sync-jobs [concourse-target]
+(defn sync-jobs [concourse-target sync-start-time]
   (let [config (builds/config-for concourse-target)]
     (println (format "Concourse %s (%s)" (:base-url config) concourse-target) )
-    (println "Finding all builds for syncing...")
-    (->> (builds/concourse-builds config)
+    (println (format "Finding all builds for syncing (starting from %s)..."
+                     (tf/unparse (:date-time tf/formatters) sync-start-time)))
+    (->> (builds/concourse-builds config sync-start-time)
          (progress/init "Syncing")
          (map progress/tick)
          (map store)
@@ -60,4 +67,4 @@
     (let [concourse-target (first (:arguments args))]
       (assert-parameter #(some? concourse-target) "The target for Concourse is required. Try --help.")
 
-      (sync-jobs concourse-target))))
+      (sync-jobs concourse-target two-months-ago))))
