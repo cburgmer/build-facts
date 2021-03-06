@@ -6,6 +6,7 @@
             [clj-progress.core :as progress]
             [clj-time
              [core :as t]
+             [coerce :as tc]
              [format :as tf]
              [local :as l]]
             [clojure.string :as string]
@@ -75,6 +76,13 @@
     (spit (io/file state-file-path)
           (j/generate-string {:lastBuildStart (:start (:build last-build))}))))
 
+(defn- read-state [state-file-path]
+  (when state-file-path
+    (let [state-file (io/file state-file-path)]
+      (when (.exists state-file)
+        (j/parse-string (slurp (io/file state-file-path))
+                        true)))))
+
 (defn -main [& c-args]
   (let [args (parse-opts c-args cli-options)]
     (when (:help (:options args))
@@ -85,13 +93,16 @@
       (System/exit 1))
 
     (let [concourse-target (first (:arguments args))
-          sync-start-time (:sync-start-time (:options args))
+          user-sync-start-time (:sync-start-time (:options args))
           output (:output (:options args))
-          state-file-path (:state-file-path (:options args))]
+          state-file-path (:state-file-path (:options args))
+          state-last-sync-time (when-let [unix-time (:lastBuildStart (read-state state-file-path))]
+                                 (tc/from-long unix-time))]
       (assert-parameter #(some? concourse-target) "The target for Concourse is required. Try --help.")
 
       (some->> (sync-jobs concourse-target
                          output
-                         (or sync-start-time
+                         (or state-last-sync-time
+                             user-sync-start-time
                              two-months-ago))
               (write-state state-file-path)))))

@@ -53,6 +53,20 @@
     (.mkdirs tmp-file)
     (.getPath tmp-file)))
 
+(defmacro with-properties [property-map & body]
+  `(let [pm# ~property-map
+         props# (into {} (for [[k# v#] pm#]
+                           [k# (System/getProperty k#)]))]
+     (doseq [k# (keys pm#)]
+       (System/setProperty k# (get pm# k#)))
+     (try
+       ~@body
+       (finally
+         (doseq [k# (keys pm#)]
+           (if-not (get props# k#)
+             (System/clearProperty k#)
+             (System/setProperty k# (get props# k#))))))))
+
 
 (deftest test-concourse-sync
   (testing "should run a sync"
@@ -127,4 +141,41 @@
                        "--output" tmp-dir
                        "--state" (.getPath (io/file tmp-dir "state.json")))))
 
-        (is (not (.exists (io/file tmp-dir "state.json"))))))))
+        (is (not (.exists (io/file tmp-dir "state.json")))))))
+
+  (testing "should resume from last synced job using state"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 5
+                                                                :name "43"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 2 1 12 0 0)
+                                                                :end_time (unix-time-in-s 2016 2 1 12 0 1)}
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}
+                                                               {:id 2
+                                                                :name "41"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2015 12 31 10 0 0)
+                                                                :end_time (unix-time-in-s 2015 12 31 10 0 1)}))
+      (let [tmp-dir (create-tmp-dir "tmp")
+            state-file (io/file tmp-dir "state.json")]
+        (with-properties {"user.home" tmp-dir}
+          (spit (io/file tmp-dir ".flyrc")
+                (yaml/generate-string {:targets {:mock-target {:api "http://concourse:8000"
+                                                               :token {:type "bearer"
+                                                                       :value "dontcare"}}}}))
+          (spit state-file
+                (j/generate-string {:lastBuildStart 1451642400000}))
+          (with-out-str
+            (sut/-main "mock-target"
+                       "--output" tmp-dir
+                       "--state" (.getPath state-file))))
+
+        (is (= ["43.json"]
+               (->> (.listFiles (io/file tmp-dir "my-pipeline my-job"))
+                    (map #(.getName %)))))))))
