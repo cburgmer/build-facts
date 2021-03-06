@@ -4,7 +4,8 @@ servers:
 
 - Jenkins
 - Go.cd
-- Teamcity
+- TeamCity
+- Concourse
 
 Currently it just dumps all the data into the current working directory under
 `./data`.
@@ -87,4 +88,3 @@ This fork needs cleaning up:
 - Remove code reference to buildviz to avoid confusion
 - DEVELOP and examples/ documentation is out of date
 - ./go make_release is broken
-- Record scripts are broken
