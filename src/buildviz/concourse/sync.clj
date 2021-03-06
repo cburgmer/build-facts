@@ -54,6 +54,23 @@
     (println msg)
     (System/exit 1)))
 
+(defn- parse-options [c-args]
+  (let [args (parse-opts c-args cli-options)]
+    (when (:help (:options args))
+      (println (usage (:summary args)))
+      (System/exit 0))
+    (when (:errors args)
+      (println (string/join "\n" (:errors args)))
+      (System/exit 1))
+
+    (let [concourse-target (first (:arguments args))]
+      (assert-parameter #(some? concourse-target) "The target for Concourse is required. Try --help.")
+
+      {:concourse-target concourse-target
+       :user-sync-start-time (:sync-start-time (:options args))
+       :output (:output (:options args))
+       :state-file-path (:state-file-path (:options args))})))
+
 (defn- store [output {:keys [job-name build-id build] :as bbuild}]
   (log/info (format "Syncing %s %s: build" job-name build-id))
   (storage/store-build! output job-name build-id build)
@@ -89,25 +106,16 @@
                         true)))))
 
 (defn -main [& c-args]
-  (let [args (parse-opts c-args cli-options)]
-    (when (:help (:options args))
-      (println (usage (:summary args)))
-      (System/exit 0))
-    (when (:errors args)
-      (println (string/join "\n" (:errors args)))
-      (System/exit 1))
-
-    (let [concourse-target (first (:arguments args))
-          user-sync-start-time (:sync-start-time (:options args))
-          output (:output (:options args))
-          state-file-path (:state-file-path (:options args))
-          state-last-sync-time (when-let [unix-time (:lastBuildStart (read-state state-file-path))]
-                                 (tc/from-long unix-time))]
-      (assert-parameter #(some? concourse-target) "The target for Concourse is required. Try --help.")
-
-      (some->> (sync-jobs concourse-target
-                         output
-                         (or state-last-sync-time
-                             user-sync-start-time
-                             two-months-ago))
-              (write-state state-file-path)))))
+  (let [{:keys [concourse-target
+                user-sync-start-time
+                output
+                state-file-path
+                state-last-sync-time]} (parse-options c-args)
+        state-last-sync-time (when-let [unix-time (:lastBuildStart (read-state state-file-path))]
+                               (tc/from-long unix-time))]
+    (some->> (sync-jobs concourse-target
+                        output
+                        (or state-last-sync-time
+                            user-sync-start-time
+                            two-months-ago))
+             (write-state state-file-path))))
