@@ -50,6 +50,7 @@
 (defn- create-tmp-dir [prefix] ; http://stackoverflow.com/questions/617414/create-a-temporary-directory-in-java
   (let [tmp-file (java.io.File/createTempFile prefix ".tmp")]
     (.delete tmp-file)
+    (.mkdirs tmp-file)
     (.getPath tmp-file)))
 
 
@@ -80,4 +81,50 @@
                (j/parse-string (slurp (io/file data-dir
                                                "my-pipeline my-job"
                                                "42.json"))
-                               true)))))))
+                               true))))))
+
+  (testing "should store the last synced build time"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+      (let [tmp-dir (create-tmp-dir "tmp")]
+        (with-redefs [slurp (constantly (yaml/generate-string
+                                         {:targets {:mock-target {:api "http://concourse:8000"
+                                                                  :token {:type "bearer"
+                                                                          :value "dontcare"}}}}))]
+          (with-out-str
+            (sut/-main "mock-target"
+                       "--from" "2016-01-01"
+                       "--output" tmp-dir
+                       "--state" (.getPath (io/file tmp-dir "state.json")))))
+
+        (is (= {:lastBuildStart 1451642400000}
+               (j/parse-string (slurp (.getPath (io/file tmp-dir "state.json")))
+                               true))))))
+
+  (testing "should not store the last synced build time if nothing was synched"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+      (let [tmp-dir (create-tmp-dir "tmp")]
+        (with-redefs [slurp (constantly (yaml/generate-string
+                                         {:targets {:mock-target {:api "http://concourse:8000"
+                                                                  :token {:type "bearer"
+                                                                          :value "dontcare"}}}}))]
+          (with-out-str
+            (sut/-main "mock-target"
+                       "--from" "2020-01-01"
+                       "--output" tmp-dir
+                       "--state" (.getPath (io/file tmp-dir "state.json")))))
+
+        (is (not (.exists (io/file tmp-dir "state.json"))))))))

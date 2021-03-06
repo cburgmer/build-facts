@@ -2,6 +2,7 @@
   (:gen-class)
   (:require [buildviz.concourse.builds :as builds]
             [buildviz.storage :as storage]
+            [cheshire.core :as j]
             [clj-progress.core :as progress]
             [clj-time
              [core :as t]
@@ -9,6 +10,7 @@
              [local :as l]]
             [clojure.string :as string]
             [clojure.tools.cli :refer [parse-opts]]
+            [clojure.java.io :as io]
             [clojure.tools.logging :as log]))
 
 (def default-data-dir "./data")
@@ -26,6 +28,8 @@
    ["-o" "--output PATH" "Directory where build data is stored"
     :id :output
     :default default-data-dir]
+   ["" "--state PATH" "Path to state file for resuming after last sync"
+    :id :state-file-path]
    ["-h" "--help"]])
 
 (defn usage [options-summary]
@@ -49,11 +53,12 @@
     (println msg)
     (System/exit 1)))
 
-(defn- store [output {:keys [job-name build-id build]}]
+(defn- store [output {:keys [job-name build-id build] :as bbuild}]
   (log/info (format "Syncing %s %s: build" job-name build-id))
-  (storage/store-build! output job-name build-id build))
+  (storage/store-build! output job-name build-id build)
+  bbuild)
 
-(defn sync-jobs [concourse-target output sync-start-time]
+(defn- sync-jobs [concourse-target output sync-start-time]
   (let [config (builds/config-for concourse-target)]
     (println (format "Concourse %s (%s)" (:base-url config) concourse-target) )
     (println (format "Finding all builds for syncing (starting from %s)..."
@@ -62,8 +67,13 @@
          (progress/init "Syncing")
          (map progress/tick)
          (map #(store output %))
-         dorun
-         (progress/done))))
+         progress/done
+         last)))
+
+(defn- write-state [state-file-path last-build]
+  (when state-file-path
+    (spit (io/file state-file-path)
+          (j/generate-string {:lastBuildStart (:start (:build last-build))}))))
 
 (defn -main [& c-args]
   (let [args (parse-opts c-args cli-options)]
@@ -76,10 +86,12 @@
 
     (let [concourse-target (first (:arguments args))
           sync-start-time (:sync-start-time (:options args))
-          output (:output (:options args))]
+          output (:output (:options args))
+          state-file-path (:state-file-path (:options args))]
       (assert-parameter #(some? concourse-target) "The target for Concourse is required. Try --help.")
 
-      (sync-jobs concourse-target
-                 output
-                 (or sync-start-time
-                     two-months-ago)))))
+      (some->> (sync-jobs concourse-target
+                         output
+                         (or sync-start-time
+                             two-months-ago))
+              (write-state state-file-path)))))
