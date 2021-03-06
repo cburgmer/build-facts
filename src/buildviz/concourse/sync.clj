@@ -26,7 +26,9 @@
     :parse-fn #(tf/parse date-formatter %)]
    ["-o" "--output PATH" "Directory where build data is stored"
     :id :output]
-   ["" "--state PATH" "Path to state file for resuming after last sync"
+   [nil "--splunk" "Output builds in Splunk HTTP Event Collector (HEC) format"
+    :id :splunk]
+   [nil "--state PATH" "Path to state file for resuming after last sync"
     :id :state-file-path]
    ["-h" "--help"]])
 
@@ -66,13 +68,23 @@
       {:concourse-target concourse-target
        :user-sync-start-time (:sync-start-time (:options args))
        :output (:output (:options args))
+       :splunkFormat? (:splunk (:options args))
        :state-file-path (:state-file-path (:options args))})))
 
-(defn- store [output {:keys [job-name build-id] :as build}]
+(defn- build->splunk-format [build]
+  {:time (/ (:end build)
+            1000)
+   :source "build-data"
+   :event build})
+
+(defn- output! [output splunkFormat? {:keys [job-name build-id] :as build}]
   (log/info (format "Syncing %s %s: build" job-name build-id))
-  (if output
-    (storage/store-build! output job-name build-id build)
-    (println (json/to-string build)))
+  (let [entity (if splunkFormat?
+                (build->splunk-format build)
+                build)]
+    (if output
+      (storage/store-build! output job-name build-id entity)
+      (println (json/to-string entity))))
   build)
 
 (defn- latest-build [builds]
@@ -97,7 +109,7 @@
     (->> builds
          (map fn))))
 
-(defn- sync-jobs [concourse-target output sync-start-time]
+(defn- sync-jobs [concourse-target output splunkFormat? sync-start-time]
   (let [config (builds/config-for concourse-target)
         console? (some? output)]
     (log console? (format "Concourse %s (%s)" (:base-url config) concourse-target))
@@ -105,7 +117,7 @@
                           (tf/unparse (:date-time tf/formatters) sync-start-time)))
 
     (->> (builds/concourse-builds config sync-start-time)
-         (with-progress console? #(store output %))
+         (with-progress console? #(output! output splunkFormat? %))
          latest-build)))
 
 (defn- write-state [state-file-path last-build]
@@ -123,12 +135,14 @@
   (let [{:keys [concourse-target
                 user-sync-start-time
                 output
+                splunkFormat?
                 state-file-path
                 state-last-sync-time]} (parse-options c-args)
         state-last-sync-time (when-let [unix-time (:last-build-start (read-state state-file-path))]
                                (tc/from-long unix-time))]
     (some->> (sync-jobs concourse-target
                         output
+                        splunkFormat?
                         (or state-last-sync-time
                             user-sync-start-time
                             two-months-ago))

@@ -230,4 +230,49 @@
 
         (is (= ["43.json"]
                (->> (.listFiles (io/file tmp-dir "my-pipeline my-job"))
-                    (map #(.getName %)))))))))
+                    (map #(.getName %))))))))
+
+  (testing "should run a sync and stream results in Splunk format"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+      (let [tmp-dir (create-tmp-dir "data")]
+        (with-fake-flyrc tmp-dir
+          (let [output (with-out-str
+                         (with-no-err
+                           (sut/-main "mock-target" "--from" "2016-01-01" "--splunk")))]
+            (is (= {:time 1451642401
+                    :source "build-data"
+                    :event {:jobName "my-pipeline my-job"
+                            :buildId "42"
+                            :outcome "pass"
+                            :start 1451642400000
+                            :end 1451642401000}}
+                   (j/parse-string output
+                                   true))))))))
+
+  (testing "should not error when syncing in Splunk format and keeping state"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+      (let [tmp-dir (create-tmp-dir "data")]
+        (with-fake-flyrc tmp-dir
+          (let [output (with-out-str
+                         (with-no-err
+                           (sut/-main "mock-target"
+                                      "--from" "2016-01-01"
+                                      "--splunk"
+                                      "--state" (.getPath (io/file tmp-dir "state.json")))))]
+            (is (= {:lastBuildStart 1451642400000}
+                   (j/parse-string (slurp (.getPath (io/file tmp-dir "state.json")))
+                                   true)))))))))
