@@ -139,10 +139,10 @@
       (let [tmp-dir (create-tmp-dir "tmp")]
         (with-fake-flyrc tmp-dir
           (with-out-str
-            (sut/-main "mock-target"
-                       "--from" "2016-01-01"
-                       "--output" tmp-dir
-                       "--state" (.getPath (io/file tmp-dir "state.json")))))
+            (with-no-err
+              (sut/-main "mock-target"
+                         "--from" "2016-01-01"
+                         "--state" (.getPath (io/file tmp-dir "state.json"))))))
 
         (is (= {:lastBuildStart 1451642400000}
                (j/parse-string (slurp (.getPath (io/file tmp-dir "state.json")))
@@ -167,10 +167,10 @@
       (let [tmp-dir (create-tmp-dir "tmp")]
         (with-fake-flyrc tmp-dir
           (with-out-str
-            (sut/-main "mock-target"
-                       "--from" "2016-01-01"
-                       "--output" tmp-dir
-                       "--state" (.getPath (io/file tmp-dir "state.json")))))
+            (with-no-err
+              (sut/-main "mock-target"
+                         "--from" "2016-01-01"
+                         "--state" (.getPath (io/file tmp-dir "state.json"))))))
 
         (is (= {:lastBuildStart 1451642400000}
                (j/parse-string (slurp (.getPath (io/file tmp-dir "state.json")))
@@ -188,10 +188,10 @@
       (let [tmp-dir (create-tmp-dir "tmp")]
         (with-fake-flyrc tmp-dir
           (with-out-str
-            (sut/-main "mock-target"
-                       "--from" "2020-01-01"
-                       "--output" tmp-dir
-                       "--state" (.getPath (io/file tmp-dir "state.json")))))
+            (with-no-err
+              (sut/-main "mock-target"
+                         "--from" "2020-01-01"
+                         "--state" (.getPath (io/file tmp-dir "state.json"))))))
 
         (is (not (.exists (io/file tmp-dir "state.json")))))))
 
