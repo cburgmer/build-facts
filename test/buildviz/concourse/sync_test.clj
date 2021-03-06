@@ -53,7 +53,7 @@
     (.mkdirs tmp-file)
     (.getPath tmp-file)))
 
-(defmacro with-properties [property-map & body]
+(defmacro with-properties [property-map & body] ; https://gist.github.com/eigenhombre/a1e7d98efddf5ebfdd90efdcebaffff6
   `(let [pm# ~property-map
          props# (into {} (for [[k# v#] pm#]
                            [k# (System/getProperty k#)]))]
@@ -67,6 +67,14 @@
              (System/clearProperty k#)
              (System/setProperty k# (get props# k#))))))))
 
+(defmacro with-fake-flyrc [target-dir & body]
+  `(with-properties {"user.home" ~target-dir}
+     (spit (io/file ~target-dir ".flyrc")
+           (yaml/generate-string {:targets {:mock-target {:api "http://concourse:8000"
+                                                          :token {:type "bearer"
+                                                                  :value "dontcare"}}}}))
+     ~@body))
+
 
 (deftest test-concourse-sync
   (testing "should run a sync"
@@ -79,10 +87,7 @@
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (let [data-dir (create-tmp-dir "data")]
-        (with-redefs [slurp (constantly (yaml/generate-string
-                                         {:targets {:mock-target {:api "http://concourse:8000"
-                                                                  :token {:type "bearer"
-                                                                          :value "dontcare"}}}}))]
+        (with-fake-flyrc data-dir
           (with-out-str
             (sut/-main "mock-target" "--from" "2016-01-01" "--output" data-dir)))
 
@@ -107,10 +112,7 @@
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (let [tmp-dir (create-tmp-dir "tmp")]
-        (with-redefs [slurp (constantly (yaml/generate-string
-                                         {:targets {:mock-target {:api "http://concourse:8000"
-                                                                  :token {:type "bearer"
-                                                                          :value "dontcare"}}}}))]
+        (with-fake-flyrc tmp-dir
           (with-out-str
             (sut/-main "mock-target"
                        "--from" "2016-01-01"
@@ -131,10 +133,7 @@
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (let [tmp-dir (create-tmp-dir "tmp")]
-        (with-redefs [slurp (constantly (yaml/generate-string
-                                         {:targets {:mock-target {:api "http://concourse:8000"
-                                                                  :token {:type "bearer"
-                                                                          :value "dontcare"}}}}))]
+        (with-fake-flyrc tmp-dir
           (with-out-str
             (sut/-main "mock-target"
                        "--from" "2020-01-01"
@@ -164,11 +163,7 @@
                                                                 :end_time (unix-time-in-s 2015 12 31 10 0 1)}))
       (let [tmp-dir (create-tmp-dir "tmp")
             state-file (io/file tmp-dir "state.json")]
-        (with-properties {"user.home" tmp-dir}
-          (spit (io/file tmp-dir ".flyrc")
-                (yaml/generate-string {:targets {:mock-target {:api "http://concourse:8000"
-                                                               :token {:type "bearer"
-                                                                       :value "dontcare"}}}}))
+        (with-fake-flyrc tmp-dir
           (spit state-file
                 (j/generate-string {:lastBuildStart 1451642400000}))
           (with-out-str
