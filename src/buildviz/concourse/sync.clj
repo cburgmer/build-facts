@@ -14,8 +14,6 @@
             [clojure.java.io :as io]
             [clojure.tools.logging :as log]))
 
-(def default-data-dir "./data")
-
 (def two-months-ago (t/minus (.withTimeAtStartOfDay (l/local-now)) (t/months 2)))
 
 (def tz (t/default-time-zone))
@@ -27,8 +25,7 @@
     :id :sync-start-time
     :parse-fn #(tf/parse date-formatter %)]
    ["-o" "--output PATH" "Directory where build data is stored"
-    :id :output
-    :default default-data-dir]
+    :id :output]
    ["" "--state PATH" "Path to state file for resuming after last sync"
     :id :state-file-path]
    ["-h" "--help"]])
@@ -73,7 +70,9 @@
 
 (defn- store [output {:keys [job-name build-id build] :as bbuild}]
   (log/info (format "Syncing %s %s: build" job-name build-id))
-  (storage/store-build! output job-name build-id build)
+  (if output
+    (storage/store-build! output job-name build-id build)
+    (println (j/generate-string build)))
   bbuild)
 
 (defn- latest-build [builds]
@@ -81,16 +80,32 @@
            0)
     (apply max-key #(:start (:build %)) builds)))
 
-(defn- sync-jobs [concourse-target output sync-start-time]
-  (let [config (builds/config-for concourse-target)]
-    (println (format "Concourse %s (%s)" (:base-url config) concourse-target) )
-    (println (format "Finding all builds for syncing (starting from %s)..."
-                     (tf/unparse (:date-time tf/formatters) sync-start-time)))
-    (->> (builds/concourse-builds config sync-start-time)
+
+(defn- log [console? message]
+  (if console?
+    (println message)
+    (binding [*out* *err*]
+      (println message))))
+
+(defn- with-progress [console? fn builds]
+  (if console?
+    (->> builds
          (progress/init "Syncing")
          (map progress/tick)
-         (map #(store output %))
-         progress/done
+         (map fn)
+         progress/done)
+    (->> builds
+         (map fn))))
+
+(defn- sync-jobs [concourse-target output sync-start-time]
+  (let [config (builds/config-for concourse-target)
+        console? (some? output)]
+    (log console? (format "Concourse %s (%s)" (:base-url config) concourse-target))
+    (log console? (format "Finding all builds for syncing (starting from %s)..."
+                          (tf/unparse (:date-time tf/formatters) sync-start-time)))
+
+    (->> (builds/concourse-builds config sync-start-time)
+         (with-progress console? #(store output %))
          latest-build)))
 
 (defn- write-state [state-file-path last-build]
