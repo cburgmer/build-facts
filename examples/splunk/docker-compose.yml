@@ -7,8 +7,7 @@ services:
     - SPLUNK_PASSWORD=password
     - SPLUNK_LICENSE_URI=Free
     - SPLUNK_LAUNCH_CONF=OPTIMISTIC_ABOUT_FILE_LOCKING=1
-    volumes:
-    - ./default.yml:/tmp/defaults/default.yml
+    - SPLUNK_HEC_TOKEN=1234567890qwertyuiop
     ports:
     - 8000:8000
     - 8088:8088
