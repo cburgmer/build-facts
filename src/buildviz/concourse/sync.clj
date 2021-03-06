@@ -11,7 +11,7 @@
             [clojure.tools.cli :refer [parse-opts]]
             [clojure.tools.logging :as log]))
 
-(def data-dir "data")
+(def default-data-dir "./data")
 
 (def two-months-ago (t/minus (.withTimeAtStartOfDay (l/local-now)) (t/months 2)))
 
@@ -23,6 +23,9 @@
   [["-f" "--from DATE" "Date from which on builds are loaded"
     :id :sync-start-time
     :parse-fn #(tf/parse date-formatter %)]
+   ["-o" "--output PATH" "Directory where build data is stored"
+    :id :output
+    :default default-data-dir]
    ["-h" "--help"]])
 
 (defn usage [options-summary]
@@ -46,11 +49,11 @@
     (println msg)
     (System/exit 1)))
 
-(defn- store [{:keys [job-name build-id build]}]
+(defn- store [output {:keys [job-name build-id build]}]
   (log/info (format "Syncing %s %s: build" job-name build-id))
-  (storage/store-build! data-dir job-name build-id build))
+  (storage/store-build! output job-name build-id build))
 
-(defn sync-jobs [concourse-target sync-start-time]
+(defn sync-jobs [concourse-target output sync-start-time]
   (let [config (builds/config-for concourse-target)]
     (println (format "Concourse %s (%s)" (:base-url config) concourse-target) )
     (println (format "Finding all builds for syncing (starting from %s)..."
@@ -58,7 +61,7 @@
     (->> (builds/concourse-builds config sync-start-time)
          (progress/init "Syncing")
          (map progress/tick)
-         (map store)
+         (map #(store output %))
          dorun
          (progress/done))))
 
@@ -72,8 +75,11 @@
       (System/exit 1))
 
     (let [concourse-target (first (:arguments args))
-          sync-start-time (:sync-start-time (:options args))]
+          sync-start-time (:sync-start-time (:options args))
+          output (:output (:options args))]
       (assert-parameter #(some? concourse-target) "The target for Concourse is required. Try --help.")
 
-      (sync-jobs concourse-target (or sync-start-time
-                                      two-months-ago)))))
+      (sync-jobs concourse-target
+                 output
+                 (or sync-start-time
+                     two-months-ago)))))

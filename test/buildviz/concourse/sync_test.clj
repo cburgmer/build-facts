@@ -6,6 +6,7 @@
             [clj-time
              [coerce :as tc]
              [core :as t]]
+            [clojure.java.io :as io]
             [clojure.test :refer :all]))
 
 (defn- successful-json-response [body]
@@ -46,6 +47,11 @@
   (/ (tc/to-long (apply t/date-time params))
      1000))
 
+(defn- create-tmp-dir [prefix] ; http://stackoverflow.com/questions/617414/create-a-temporary-directory-in-java
+  (let [tmp-file (java.io.File/createTempFile prefix ".tmp")]
+    (.delete tmp-file)
+    (.getPath tmp-file)))
+
 
 (deftest test-concourse-sync
   (testing "should run a sync"
@@ -62,4 +68,8 @@
                                                                 :token {:type "bearer"
                                                                         :value "dontcare"}}}}))]
         (with-out-str
-          (sut/-main "mock-target" "--from" "2016-01-01"))))))
+          (let [data-dir (create-tmp-dir "data")]
+            (sut/-main "mock-target" "--from" "2016-01-01" "--output" data-dir)
+            (is (= ["42.json"]
+                   (->> (.listFiles (io/file data-dir "my-pipeline my-job"))
+                        (map #(.getName %)))))))))))
