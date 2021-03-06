@@ -1,0 +1,14 @@
+version: "3.7"
+services:
+  splunk:
+    image: splunk/splunk:8.1.2
+    environment:
+    - SPLUNK_START_ARGS=--accept-license
+    - SPLUNK_PASSWORD=password
+    - SPLUNK_LICENSE_URI=Free
+    - SPLUNK_LAUNCH_CONF=OPTIMISTIC_ABOUT_FILE_LOCKING=1
+    volumes:
+    - ./default.yml:/tmp/defaults/default.yml
+    ports:
+    - 8000:8000
+    - 8088:8088
