@@ -96,7 +96,9 @@
           (let [output (with-out-str
                          (with-no-err
                            (sut/-main "mock-target" "--from" "2016-01-01")))]
-            (is (= {:outcome "pass"
+            (is (= {:jobName "my-pipeline my-job"
+                    :buildId "42"
+                    :outcome "pass"
                     :start 1451642400000
                     :end 1451642401000}
                    (j/parse-string output
@@ -119,7 +121,9 @@
         (is (= ["42.json"]
                (->> (.listFiles (io/file data-dir "my-pipeline my-job"))
                     (map #(.getName %)))))
-        (is (= {:outcome "pass"
+        (is (= {:jobName "my-pipeline my-job"
+                :buildId "42"
+                :outcome "pass"
                 :start 1451642400000
                 :end 1451642401000}
                (j/parse-string (slurp (io/file data-dir

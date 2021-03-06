@@ -2,7 +2,7 @@
   (:gen-class)
   (:require [buildviz.concourse.builds :as builds]
             [buildviz.storage :as storage]
-            [cheshire.core :as j]
+            [buildviz.util.json :as json]
             [clj-progress.core :as progress]
             [clj-time
              [core :as t]
@@ -68,17 +68,17 @@
        :output (:output (:options args))
        :state-file-path (:state-file-path (:options args))})))
 
-(defn- store [output {:keys [job-name build-id build] :as bbuild}]
+(defn- store [output {:keys [job-name build-id] :as build}]
   (log/info (format "Syncing %s %s: build" job-name build-id))
   (if output
     (storage/store-build! output job-name build-id build)
-    (println (j/generate-string build)))
-  bbuild)
+    (println (json/to-string build)))
+  build)
 
 (defn- latest-build [builds]
   (when (> (count builds)
            0)
-    (apply max-key #(:start (:build %)) builds)))
+    (apply max-key #(:start %) builds)))
 
 
 (defn- log [console? message]
@@ -111,14 +111,13 @@
 (defn- write-state [state-file-path last-build]
   (when state-file-path
     (spit (io/file state-file-path)
-          (j/generate-string {:lastBuildStart (:start (:build last-build))}))))
+          (json/to-string {:last-build-start (:start last-build)}))))
 
 (defn- read-state [state-file-path]
   (when state-file-path
     (let [state-file (io/file state-file-path)]
       (when (.exists state-file)
-        (j/parse-string (slurp (io/file state-file-path))
-                        true)))))
+        (json/from-string (slurp (io/file state-file-path)))))))
 
 (defn -main [& c-args]
   (let [{:keys [concourse-target
@@ -126,7 +125,7 @@
                 output
                 state-file-path
                 state-last-sync-time]} (parse-options c-args)
-        state-last-sync-time (when-let [unix-time (:lastBuildStart (read-state state-file-path))]
+        state-last-sync-time (when-let [unix-time (:last-build-start (read-state state-file-path))]
                                (tc/from-long unix-time))]
     (some->> (sync-jobs concourse-target
                         output

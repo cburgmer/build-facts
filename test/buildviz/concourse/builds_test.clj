@@ -63,9 +63,9 @@
                                    beginning-of-2016)
              '({:job-name "my-pipeline my-job"
                 :build-id "42"
-                :build {:outcome "pass"
-                        :start 1451642400000
-                        :end 1451642401000}})))))
+                :outcome "pass"
+                :start 1451642400000
+                :end 1451642401000})))))
 
   (testing "should sync a failing build"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
@@ -81,9 +81,9 @@
                                    beginning-of-2016)
              '({:job-name "my-pipeline my-job"
                 :build-id "42"
-                :build {:outcome "fail"
-                        :start 1451642400000
-                        :end 1451642401000}})))))
+                :outcome "fail"
+                :start 1451642400000
+                :end 1451642401000})))))
 
   (testing "should handle aborted build without start time"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
@@ -97,9 +97,9 @@
                                    beginning-of-2016)
              '({:job-name "my-pipeline my-job"
                 :build-id "42"
-                :build {:outcome "fail"
-                        :start 1451642401000
-                        :end 1451642401000}})))))
+                :outcome "fail"
+                :start 1451642401000
+                :end 1451642401000})))))
 
   (testing "should handle pagination for long build histories"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
@@ -139,19 +139,19 @@
                                    beginning-of-2016)
              '({:job-name "my-pipeline my-job"
                 :build-id "43"
-                :build {:outcome "pass"
-                        :start 1454328000000
-                        :end 1454328001000}}
+                :outcome "pass"
+                :start 1454328000000
+                :end 1454328001000}
                {:job-name "my-pipeline my-job"
                 :build-id "42"
-                :build {:outcome "pass"
-                        :start 1451642400000
-                        :end 1451642401000}}
+                :outcome "pass"
+                :start 1451642400000
+                :end 1451642401000}
                {:job-name "my-pipeline my-job"
                 :build-id "41"
-                :build {:outcome "pass"
-                        :start 1451613600000
-                        :end 1451613601000}})))))
+                :outcome "pass"
+                :start 1451613600000
+                :end 1451613601000})))))
 
   (testing "should stop syncing after given date"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
@@ -182,14 +182,14 @@
                                    beginning-of-2016)
              '({:job-name "my-pipeline my-job"
                 :build-id "43"
-                :build {:outcome "pass"
-                        :start 1454328000000
-                        :end 1454328001000}}
+                :outcome "pass"
+                :start 1454328000000
+                :end 1454328001000}
                {:job-name "my-pipeline my-job"
                 :build-id "42"
-                :build {:outcome "pass"
-                        :start 1451642400000
-                        :end 1451642401000}})))))
+                :outcome "pass"
+                :start 1451642400000
+                :end 1451642401000})))))
 
   (testing "should not confuse date of multiple jobs"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
@@ -222,11 +222,11 @@
                                    beginning-of-2016)
              '({:job-name "my-pipeline my-job"
                 :build-id "42"
-                :build {:outcome "pass"
-                        :start 1451642400000
-                        :end 1451642401000}}
+                :outcome "pass"
+                :start 1451642400000
+                :end 1451642401000}
                {:job-name "my-pipeline another-job"
                 :build-id "10"
-                :build {:outcome "pass"
-                        :start 1451642400000
-                        :end 1451642401000}}))))))
+                :outcome "pass"
+                :start 1451642400000
+                :end 1451642401000}))))))
