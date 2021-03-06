@@ -1,0 +1,14 @@
+Builds can be synced via
+
+    ./run.sh start
+    ../concourse/run.sh start
+
+    curl -vL "http://localhost:8080/api/v1/cli?arch=amd64&platform=Darwin" -o "fly" # Replace Darwin for Linux where necessary
+    chmod a+x fly
+    ./fly login --target build-data -c "http://localhost:8080"
+
+    while read event; do
+      curl -d "$event" -k -H "Authorization: Splunk 1234567890qwertyuiop" 'https://localhost:8088/services/collector'
+    done <<< "$(./lein run -m buildviz.concourse.sync build-data --splunk)"
+
+An example [dashboard exists](./dashboard.xml) and can be copied in via the "Source" edit mode.
