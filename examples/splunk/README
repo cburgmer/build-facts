@@ -12,3 +12,5 @@ Builds can be synced via
     done <<< "$(./lein run -m buildviz.concourse.sync build-data --splunk)"
 
 An example [dashboard exists](./dashboard.xml) and can be copied in via the "Source" edit mode.
+
+See https://docs.splunk.com/Documentation/Splunk/8.1.2/Data/UsetheHTTPEventCollector for the official Splunk documentation for setting up the HTTP Event Collector (HEC).

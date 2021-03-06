@@ -2,11 +2,11 @@ version: "3.7"
 services:
   splunk:
     image: splunk/splunk:8.1.2
-    environment:
+    environment: # https://splunk.github.io/docker-splunk/
     - SPLUNK_START_ARGS=--accept-license
     - SPLUNK_PASSWORD=password
-    - SPLUNK_LICENSE_URI=Free
-    - SPLUNK_LAUNCH_CONF=OPTIMISTIC_ABOUT_FILE_LOCKING=1
+    - SPLUNK_LICENSE_URI=Free # https://docs.splunk.com/Documentation/Splunk/latest/Admin/MoreaboutSplunkFree
+    - SPLUNK_LAUNCH_CONF=OPTIMISTIC_ABOUT_FILE_LOCKING=1 # https://www.madhur.co.in/blog/2020/01/18/running-splunk-docker-osx.html
     - SPLUNK_HEC_TOKEN=1234567890qwertyuiop
     ports:
     - 8000:8000

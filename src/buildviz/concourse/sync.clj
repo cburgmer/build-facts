@@ -71,7 +71,7 @@
        :splunkFormat? (:splunk (:options args))
        :state-file-path (:state-file-path (:options args))})))
 
-(defn- build->splunk-format [build]
+(defn- build->splunk-format [build] ;; https://docs.splunk.com/Documentation/Splunk/8.1.2/Data/FormateventsforHTTPEventCollector
   {:time (/ (:end build)
             1000)
    :source "build-data"
