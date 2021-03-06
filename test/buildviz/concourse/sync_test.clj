@@ -63,13 +63,21 @@
                                                                 :status "succeeded"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
-      (with-redefs [slurp (constantly (yaml/generate-string
-                                       {:targets {:mock-target {:api "http://concourse:8000"
-                                                                :token {:type "bearer"
-                                                                        :value "dontcare"}}}}))]
-        (with-out-str
-          (let [data-dir (create-tmp-dir "data")]
-            (sut/-main "mock-target" "--from" "2016-01-01" "--output" data-dir)
-            (is (= ["42.json"]
-                   (->> (.listFiles (io/file data-dir "my-pipeline my-job"))
-                        (map #(.getName %)))))))))))
+      (let [data-dir (create-tmp-dir "data")]
+        (with-redefs [slurp (constantly (yaml/generate-string
+                                         {:targets {:mock-target {:api "http://concourse:8000"
+                                                                  :token {:type "bearer"
+                                                                          :value "dontcare"}}}}))]
+          (with-out-str
+            (sut/-main "mock-target" "--from" "2016-01-01" "--output" data-dir)))
+
+        (is (= ["42.json"]
+               (->> (.listFiles (io/file data-dir "my-pipeline my-job"))
+                    (map #(.getName %)))))
+        (is (= {:outcome "pass"
+                :start 1451642400000
+                :end 1451642401000}
+               (j/parse-string (slurp (io/file data-dir
+                                               "my-pipeline my-job"
+                                               "42.json"))
+                               true)))))))
