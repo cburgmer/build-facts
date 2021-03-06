@@ -123,6 +123,34 @@
                (j/parse-string (slurp (.getPath (io/file tmp-dir "state.json")))
                                true))))))
 
+  (testing "should store the last synced build time with multiple jobs"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job")
+                                                            (a-job "my-team" "my-pipeline" "another-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-builds "my-team" "my-pipeline" "another-job"
+                                                               {:id 2
+                                                                :name "10"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 9 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 9 0 1)}))
+      (let [tmp-dir (create-tmp-dir "tmp")]
+        (with-fake-flyrc tmp-dir
+          (with-out-str
+            (sut/-main "mock-target"
+                       "--from" "2016-01-01"
+                       "--output" tmp-dir
+                       "--state" (.getPath (io/file tmp-dir "state.json")))))
+
+        (is (= {:lastBuildStart 1451642400000}
+               (j/parse-string (slurp (.getPath (io/file tmp-dir "state.json")))
+                               true))))))
+
   (testing "should not store the last synced build time if nothing was synched"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
                                                   (all-jobs (a-job "my-team" "my-pipeline" "my-job"))

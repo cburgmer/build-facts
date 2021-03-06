@@ -59,6 +59,11 @@
   (storage/store-build! output job-name build-id build)
   bbuild)
 
+(defn- latest-build [builds]
+  (when (> (count builds)
+           0)
+    (apply max-key #(:start (:build %)) builds)))
+
 (defn- sync-jobs [concourse-target output sync-start-time]
   (let [config (builds/config-for concourse-target)]
     (println (format "Concourse %s (%s)" (:base-url config) concourse-target) )
@@ -69,7 +74,7 @@
          (map progress/tick)
          (map #(store output %))
          progress/done
-         last)))
+         latest-build)))
 
 (defn- write-state [state-file-path last-build]
   (when state-file-path
