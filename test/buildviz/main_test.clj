@@ -1,5 +1,5 @@
-(ns buildviz.concourse.sync-test
-  (:require [buildviz.concourse.sync :as sut]
+(ns buildviz.main-test
+  (:require [buildviz.main :as sut]
             [cheshire.core :as j]
             [clj-yaml.core :as yaml]
             [clj-http.fake :as fake]
@@ -82,7 +82,7 @@
        ~@body)))
 
 
-(deftest test-concourse-sync
+(deftest test-main
   (testing "should run a sync and stream results"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
                                                   (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
@@ -96,7 +96,7 @@
         (with-fake-flyrc tmp-dir
           (let [output (with-out-str
                          (with-no-err
-                           (sut/-main "mock-target" "--from" "2016-01-01")))]
+                           (sut/-main "concourse" "mock-target" "--from" "2016-01-01")))]
             (is (= {:jobName "my-pipeline my-job"
                     :buildId "42"
                     :outcome "pass"
@@ -117,7 +117,7 @@
       (let [data-dir (create-tmp-dir "data")]
         (with-fake-flyrc data-dir
           (with-out-str
-            (sut/-main "mock-target" "--from" "2016-01-01" "--output" data-dir)))
+            (sut/-main "concourse" "mock-target" "--from" "2016-01-01" "--output" data-dir)))
 
         (is (= ["42.json"]
                (->> (.listFiles (io/file data-dir "my-pipeline my-job"))
@@ -145,7 +145,8 @@
         (with-fake-flyrc tmp-dir
           (with-out-str
             (with-no-err
-              (sut/-main "mock-target"
+              (sut/-main "concourse"
+                         "mock-target"
                          "--from" "2016-01-01"
                          "--state" (.getPath (io/file tmp-dir "state.json"))))))
 
@@ -173,7 +174,8 @@
         (with-fake-flyrc tmp-dir
           (with-out-str
             (with-no-err
-              (sut/-main "mock-target"
+              (sut/-main "concourse"
+                         "mock-target"
                          "--from" "2016-01-01"
                          "--state" (.getPath (io/file tmp-dir "state.json"))))))
 
@@ -194,7 +196,8 @@
         (with-fake-flyrc tmp-dir
           (with-out-str
             (with-no-err
-              (sut/-main "mock-target"
+              (sut/-main "concourse"
+                         "mock-target"
                          "--from" "2020-01-01"
                          "--state" (.getPath (io/file tmp-dir "state.json"))))))
 
@@ -225,7 +228,8 @@
           (spit state-file
                 (j/generate-string {:lastBuildStart 1451642400000}))
           (with-out-str
-            (sut/-main "mock-target"
+            (sut/-main "concourse"
+                       "mock-target"
                        "--output" tmp-dir
                        "--state" (.getPath state-file))))
 
@@ -246,7 +250,7 @@
         (with-fake-flyrc tmp-dir
           (let [output (with-out-str
                          (with-no-err
-                           (sut/-main "mock-target" "--from" "2016-01-01" "--splunk")))]
+                           (sut/-main "concourse" "mock-target" "--from" "2016-01-01" "--splunk")))]
             (is (= {:time 1451642401
                     :source "build-data"
                     :event {:jobName "my-pipeline my-job"
@@ -270,7 +274,8 @@
         (with-fake-flyrc tmp-dir
           (let [output (with-out-str
                          (with-no-err
-                           (sut/-main "mock-target"
+                           (sut/-main "concourse"
+                                      "mock-target"
                                       "--from" "2016-01-01"
                                       "--splunk"
                                       "--state" (.getPath (io/file tmp-dir "state.json")))))]

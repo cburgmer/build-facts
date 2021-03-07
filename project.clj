@@ -18,10 +18,11 @@
                  [intervox/clj-progress "0.2.1"]
                  [uritemplate-clj "1.3.0"]
                  [wharf "0.2.0-20141115.032457-2"]]
-  :aot [buildviz.go.sync
+  :main buildviz.main
+  :aot [buildviz.main
+        buildviz.go.sync
         buildviz.jenkins.sync
         buildviz.teamcity.sync
-        buildviz.concourse.sync
         buildviz.data.junit-xml]
   :profiles {:dev {:dependencies [[clj-http-fake "1.0.3"]]
                    :plugins [[lein-ancient "1.0.0-RC3"]]}
