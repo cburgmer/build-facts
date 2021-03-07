@@ -1,27 +1,28 @@
+## Status
+
 This yet unnamed child is a fork of [buildviz](https://github.com/cburgmer/buildviz).
 It only retains the logic necessary to read build data from different build
-servers:
-
-- Jenkins
-- Go.cd
-- TeamCity
-- Concourse
-
-Currently it just dumps all the data into the current working directory under
-`./data`.
+servers.
 
 ## Goal
 
-Provide a simple way to download build and test metadata from CI/CD servers in a
-JSON structure for analysis. The format shall aim for consistency across build
-server implementations.
+Download build facts from different CI/CD servers in a standard JSON schema.
 
 ## Features
 
 - Streams standardized build data
-- Can optionally write build data to a files
 - Support for Splunk HEC format
 - Resume from previous sync
+- Optionally writes build data to files
+- Supports the following systems:
+  - Jenkins
+  - Go.cd
+  - TeamCity
+  - Concourse
+
+## Build JSON schema
+
+To be documented...
 
 ## Howto
 
