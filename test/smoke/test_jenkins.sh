@@ -27,7 +27,7 @@ stop_wiremock() {
 }
 
 sync_builds() {
-    JENKINS_USER="my_user" JENKINS_PASSWORD="my_password" "${SCRIPT_DIR}/../../lein" run -m buildviz.jenkins.sync "$SYNC_URL" --from 2000-01-01
+    JENKINS_USER="my_user" JENKINS_PASSWORD="my_password" "${SCRIPT_DIR}/../../lein" run -m buildviz.main jenkins "$SYNC_URL" --from 2000-01-01
 }
 
 ensure_user_agent() {

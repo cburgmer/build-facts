@@ -43,16 +43,26 @@
 (defn- sync-oldest-first-to-deal-with-cancellation [builds]
   (sort-by :timestamp builds))
 
+(defn- builds [base-url sync-start-time]
+  (->> (api/get-jobs base-url)
+       (mapcat #(all-builds-for-job base-url sync-start-time %))
+       sync-oldest-first-to-deal-with-cancellation
+       (map (partial add-test-results base-url))
+       (map transform/jenkins-build->buildviz-build)))
+
+(defn jenkins-builds [{base-url :base-url} sync-start-time]
+  (->> (builds base-url sync-start-time)
+       (map (fn [{:keys [job-name build-id build]}]
+              (merge {:job-name job-name
+                      :build-id build-id}
+                     build)))))
+
 (defn sync-jobs [jenkins-url data-dir sync-start-time]
   (println "Jenkins" (str jenkins-url))
   (println (format "Finding all builds for syncing (starting from %s)..."
                  (tf/unparse (:date-time tf/formatters) sync-start-time)))
-  (->> (api/get-jobs jenkins-url)
-       (mapcat #(all-builds-for-job jenkins-url sync-start-time %))
+  (->> (builds jenkins-url sync-start-time)
        (progress/init "Syncing")
-       sync-oldest-first-to-deal-with-cancellation
-       (map (partial add-test-results jenkins-url))
-       (map transform/jenkins-build->buildviz-build)
        (map (partial store data-dir))
        (map progress/tick)
        dorun
