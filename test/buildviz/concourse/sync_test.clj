@@ -71,6 +71,7 @@
   `(with-properties {"user.home" ~target-dir}
      (spit (io/file ~target-dir ".flyrc")
            (yaml/generate-string {:targets {:mock-target {:api "http://concourse:8000"
+                                                          :team "my-team"
                                                           :token {:type "bearer"
                                                                   :value "dontcare"}}}}))
      ~@body))

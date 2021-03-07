@@ -28,7 +28,10 @@
             pipeline-name
             job-name
             up-to-id)
-    (successful-json-response (map #(assoc % :pipeline_name pipeline-name :job_name job-name) builds))]])
+    (successful-json-response (map #(assoc %
+                                           :pipeline_name pipeline-name
+                                           :job_name job-name)
+                                   builds))]])
 
 (defn- some-builds [team-name pipeline-name job-name & builds]
   (apply some-builds-up-to (concat ["" team-name pipeline-name job-name] builds)))
@@ -59,7 +62,8 @@
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
-                                    :bearer-token "fake-token"}
+                                    :bearer-token "fake-token"
+                                    :team-name "my-team"}
                                    beginning-of-2016)
              '({:job-name "my-pipeline my-job"
                 :build-id "42"
@@ -77,7 +81,8 @@
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
-                                    :bearer-token "fake-token"}
+                                    :bearer-token "fake-token"
+                                    :team-name "my-team"}
                                    beginning-of-2016)
              '({:job-name "my-pipeline my-job"
                 :build-id "42"
@@ -93,12 +98,37 @@
                                                                 :status "aborted"
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
-                                    :bearer-token "fake-token"}
+                                    :bearer-token "fake-token"
+                                    :team-name "my-team"}
                                    beginning-of-2016)
              '({:job-name "my-pipeline my-job"
                 :build-id "42"
                 :outcome "fail"
                 :start 1451642401000
+                :end 1451642401000})))))
+
+  (testing "should not sync builds from a different team"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job")
+                                                            (a-job "another-team" "my-pipeline" "my-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:name "42"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-builds "another-team" "my-pipeline" "my-job"
+                                                               {:name "43"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+      (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
+                                    :bearer-token "fake-token"
+                                    :team-name "my-team"}
+                                   beginning-of-2016)
+             '({:job-name "my-pipeline my-job"
+                :build-id "42"
+                :outcome "pass"
+                :start 1451642400000
                 :end 1451642401000})))))
 
   (testing "should handle pagination for long build histories"
@@ -135,7 +165,8 @@
                                                                       :start_time (unix-time-in-s 2016 1 1 2 0 0)
                                                                       :end_time (unix-time-in-s 2016 1 1 2 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
-                                    :bearer-token "fake-token"}
+                                    :bearer-token "fake-token"
+                                    :team-name "my-team"}
                                    beginning-of-2016)
              '({:job-name "my-pipeline my-job"
                 :build-id "43"
@@ -178,7 +209,8 @@
                                                                 :start_time (unix-time-in-s 2015 12 30 10 0 0)
                                                                 :end_time (unix-time-in-s 2015 12 30 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
-                                    :bearer-token "fake-token"}
+                                    :bearer-token "fake-token"
+                                    :team-name "my-team"}
                                    beginning-of-2016)
              '({:job-name "my-pipeline my-job"
                 :build-id "43"
@@ -218,7 +250,8 @@
                                                                 :start_time (unix-time-in-s 2015 12 31 10 0 0)
                                                                 :end_time (unix-time-in-s 2015 12 31 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
-                                    :bearer-token "fake-token"}
+                                    :bearer-token "fake-token"
+                                    :team-name "my-team"}
                                    beginning-of-2016)
              '({:job-name "my-pipeline my-job"
                 :build-id "42"

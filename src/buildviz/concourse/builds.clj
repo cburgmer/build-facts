@@ -19,6 +19,7 @@
                (get "type"))
            "bearer")
       {:base-url (get config "api")
+       :team-name (get config "team")
        :bearer-token (-> config
                          (get "token")
                          (get "value"))
@@ -36,4 +37,5 @@
 (defn concourse-builds [config sync-start-time]
   (api/test-login config)
   (->> (api/all-jobs config)
+       (filter #(= (:team_name %) (:team-name config)))
        (mapcat #(builds-for-job config sync-start-time %))))
