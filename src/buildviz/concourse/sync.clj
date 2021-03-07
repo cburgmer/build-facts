@@ -109,17 +109,6 @@
     (->> builds
          (map fn))))
 
-(defn- sync-jobs [concourse-target output splunkFormat? sync-start-time]
-  (let [config (builds/config-for concourse-target)
-        console? (some? output)]
-    (log console? (format "Concourse %s (%s)" (:base-url config) concourse-target))
-    (log console? (format "Finding all builds for syncing (starting from %s)..."
-                          (tf/unparse (:date-time tf/formatters) sync-start-time)))
-
-    (->> (builds/concourse-builds config sync-start-time)
-         (with-progress console? #(output! output splunkFormat? %))
-         latest-build)))
-
 (defn- write-state [state-file-path last-build]
   (when state-file-path
     (spit (io/file state-file-path)
@@ -131,19 +120,38 @@
       (when (.exists state-file)
         (json/from-string (slurp (io/file state-file-path)))))))
 
+(defn- sync-builds [{:keys [base-url
+                            user-sync-start-time
+                            output
+                            splunkFormat?
+                            state-file-path]}
+                    fetch-builds]
+  (let [state-last-sync-time (when-let [unix-time (:last-build-start (read-state state-file-path))]
+                               (tc/from-long unix-time))
+        sync-start-time (or state-last-sync-time
+                            user-sync-start-time
+                            two-months-ago)
+        console? (some? output)]
+    (log console? (format "Finding all builds for syncing from %s (starting from %s)..."
+                          base-url
+                          (tf/unparse (:date-time tf/formatters) sync-start-time)))
+
+    (some->> (fetch-builds sync-start-time)
+             (with-progress console? #(output! output splunkFormat? %))
+             latest-build
+             (write-state state-file-path))))
+
 (defn -main [& c-args]
   (let [{:keys [concourse-target
                 user-sync-start-time
                 output
                 splunkFormat?
-                state-file-path
-                state-last-sync-time]} (parse-options c-args)
-        state-last-sync-time (when-let [unix-time (:last-build-start (read-state state-file-path))]
-                               (tc/from-long unix-time))]
-    (some->> (sync-jobs concourse-target
-                        output
-                        splunkFormat?
-                        (or state-last-sync-time
-                            user-sync-start-time
-                            two-months-ago))
-             (write-state state-file-path))))
+                state-file-path]} (parse-options c-args)
+        config (builds/config-for concourse-target)]
+
+    (sync-builds {:user-sync-start-time user-sync-start-time
+                  :output output
+                  :splunkFormat? splunkFormat?
+                  :state-file-path state-file-path
+                  :base-url (:base-url config)}
+                 #(builds/concourse-builds config %))))
