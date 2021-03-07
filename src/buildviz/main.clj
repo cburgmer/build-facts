@@ -2,7 +2,7 @@
   (:gen-class)
   (:require [buildviz.sync :as sync]
             [buildviz.concourse.builds :as concourse-builds]
-            [buildviz.jenkins.sync-jobs :as jenkins-builds]
+            [buildviz.jenkins.builds :as jenkins-builds]
             [buildviz.storage :as storage]
             [buildviz.util.json :as json]
             [buildviz.util.url :as url]
