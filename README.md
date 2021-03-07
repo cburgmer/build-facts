@@ -16,6 +16,13 @@ Provide a simple way to download build and test metadata from CI/CD servers in a
 JSON structure for analysis. The format shall aim for consistency across build
 server implementations.
 
+## Features
+
+- Streams standardized build data
+- Can optionally write build data to a files
+- Support for Splunk HEC format
+- Resume from previous sync
+
 ## Howto
 
 Have a build server running, e.g. an example Jenkins shipped with this repo:
@@ -24,43 +31,12 @@ Have a build server running, e.g. an example Jenkins shipped with this repo:
 
 Now start the sync pointing to this instance
 
-    $ ./lein run -m buildviz.jenkins.sync http://localhost:8080
-    Jenkins http://localhost:8080
-    Finding all builds for syncing (starting from 2019-06-05T22:00:00.000Z)...
-    Syncing [==================================================] 100% 11/11
-
-You'll receive the last two months of builds (use `--help` for options). Voila:
-
-    $ ls data/*
-    data/Deploy:
-    1.json  2.json  3.json
-
-    data/SmokeTest:
-    1.json  2.json
-
-    data/Test:
-    1.json  2.json  3.json  4.json  5.json  6.json
-
-Each file representing a build with the given job name and build id:
-
-    $ cat data/Deploy/2.json | jp
-    {
-      "start": 1565121687863,
-      "end": 1565121702840,
-      "outcome": "fail",
-      "inputs": [
-        {
-          "revision": "edfb6bd410a6fd4a5814e29acc7b2bad99c37ecc",
-          "sourceId": "TEST_GIT_COMMIT"
-        }
-      ],
-      "triggeredBy": [
-        {
-          "jobName": "Test",
-          "buildId": "4"
-        }
-      ]
-    }
+    $ ./lein run -m buildviz.main jenkins http://localhost:8080
+    Finding all builds for syncing from http://localhost:8080 (starting from 2021-01-06T23:00:00.000Z)...
+    {"jobName":"Test","buildId":1,"start":1615151319678,"end":1615151342243,"outcome":"pass","inputs":[{"revision":"9bb731de4f4372a8c3b4e53e7d70cd729b32419c","sourceId":"https://github.com/cburgmer/buildviz.git"}]}
+    {"jobName":"Test","buildId":2,"start":1615151342348,"end":1615151344854,"outcome":"pass","inputs":[{"revision":"9bb731de4f4372a8c3b4e53e7d70cd729b32419c","sourceId":"https://github.com/cburgmer/buildviz.git"}]}
+    {"jobName":"Deploy","buildId":1,"start":1615151349657,"end":1615151361672,"outcome":"pass","inputs":[{"revision":"9bb731de4f4372a8c3b4e53e7d70cd729b32419c","sourceId":"TEST_GIT_COMMIT"}],"triggeredBy":[{"jobName":"Test","buildId":"1"},{"jobName":"Test","buildId":"2"}]}
+    [...]
 
 If you happen to receive JUnit XML test results, you can inspect them via
 
@@ -72,14 +48,6 @@ If you happen to receive JUnit XML test results, you can inspect them via
         some.class.Another Test	0.003	:pass
         some.class.Skipped Test	0.004	:skipped
 
-You can come back later and sync more builds, automatically resuming where you
-left off before
-
-    $ ./lein run -m buildviz.jenkins.sync http://localhost:8080
-    Jenkins http://localhost:8080
-    Finding all builds for syncing (starting from 2019-08-06T20:11:10.460Z)...
-    Syncing [==================================================] 100% 1/1
-
 ## To do
 
 This fork needs cleaning up:
@@ -88,3 +56,4 @@ This fork needs cleaning up:
 - Remove code reference to buildviz to avoid confusion
 - DEVELOP and examples/ documentation is out of date
 - ./go make_release is broken
+- Jenkins resuming will sync last job again
