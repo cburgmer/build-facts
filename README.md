@@ -7,14 +7,17 @@ servers.
 ## Goal
 
 Download build facts from different CI/CD servers in a standard JSON schema.
+You then take it from there with your own analytics. See
+https://github.com/cburgmer/buildviz for an example on what is possible with a
+small set of build properties.
 
 ## Features
 
 - Streams standardized build data
-- Support for Splunk HEC format
+- Splunk HEC format
 - Resume from previous sync
-- Optionally writes build data to files
-- Supports the following systems:
+- Output build data to files
+- Supports the following build servers:
   - Jenkins
   - Go.cd
   - TeamCity
