@@ -60,6 +60,28 @@
                 :outcome "pass"})
              (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")} beginning-of-2016)))))
 
+  (testing "should include inputs and reference to build it was triggered by"
+    (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
+                                                  (a-job-with-builds "some_job" {:number "21"
+                                                                                 :timestamp 1493201298062
+                                                                                 :duration 10200
+                                                                                 :result "SUCCESS"
+                                                                                 :actions [{:lastBuiltRevision {:SHA1 "234567890"}
+                                                                                            :remoteUrls ["some-url"]}
+                                                                                           {:parameters '({:name "the-name"
+                                                                                                           :value "some-value"})}
+                                                                                           {:causes [{:upstreamProject "the_upstream"
+                                                                                                      :upstreamBuild "33"}]}]}))
+      (is (= '({:job-name "some_job"
+                :build-id "21"
+                :start 1493201298062
+                :end 1493201308262
+                :outcome "pass"
+                :inputs ({:revision "234567890" :source-id "some-url"}
+                         {:revision "some-value" :source-id "the-name"})
+                :triggered-by ({:job-name "the_upstream", :build-id "33"})})
+             (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")} beginning-of-2016)))))
+
   (testing "should omit build trigger if triggered by user due to temporal disconnect"
     (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
                                                   (a-job-with-builds "some_job" {:number "21"
@@ -71,4 +93,4 @@
                                                                                            {:causes [{:userId "the_user"}]}]}))
       (is (nil? (-> (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")} beginning-of-2016)
                     first
-                    :triggeredBy))))))
+                    :triggered-by))))))
