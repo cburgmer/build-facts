@@ -22,7 +22,21 @@ Download build facts from different CI/CD servers in a standard JSON schema.
 
 ## Build JSON schema
 
-To be documented...
+    {
+      "jobName": "Deploy",
+      "buildId": "21",
+      "start": 1451449853542,
+      "end": 1451449870555,
+      "outcome": "pass", /* or "fail" */
+      "inputs": [{
+        "revision": "1eadcdd4d35f9a",
+        "sourceId": "git@github.com:cburgmer/buildviz.git"
+      }],
+      "triggeredBy": [{
+        "jobName": "Test",
+        "buildId": "42"
+      }]
+    }
 
 ## Howto
 
@@ -58,3 +72,4 @@ This fork needs cleaning up:
 - DEVELOP and examples/ documentation is out of date
 - ./go make_release is broken
 - Jenkins resuming will sync last job again
+- Make the build-id a string, always to align with the triggeredBy schema
