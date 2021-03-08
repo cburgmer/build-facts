@@ -16,18 +16,13 @@
   (filter :result builds))
 
 (defn- all-builds-for-job [jenkins-url sync-start-time job-name]
-  (let [safe-build-start-time (t/minus sync-start-time (t/millis 1))]
-    (->> (api/get-builds jenkins-url job-name)
-         (take-while #(t/after? (jenkins-build->start-time %) safe-build-start-time))
-         ignore-ongoing-builds)))
-
-(defn- sync-oldest-first-to-deal-with-cancellation [builds]
-  (sort-by :timestamp builds))
+  (->> (api/get-builds jenkins-url job-name)
+       (take-while #(t/after? (jenkins-build->start-time %) sync-start-time))
+       ignore-ongoing-builds))
 
 (defn jenkins-builds [{base-url :base-url} sync-start-time]
   (->> (api/get-jobs base-url)
        (mapcat #(all-builds-for-job base-url sync-start-time %))
-       sync-oldest-first-to-deal-with-cancellation
        (map (partial add-test-results base-url))
        (map transform/jenkins-build->buildviz-build)
        ;; disable test-results while we figure out how to handle them

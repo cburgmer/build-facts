@@ -76,3 +76,4 @@ This fork needs cleaning up:
 - ./go make_release is broken
 - Jenkins resuming will sync last job again
 - Make the build-id a string, always to align with the triggeredBy schema
+- Move over https://github.com/cburgmer/buildviz/wiki/CI-tool-integration
