@@ -19,32 +19,30 @@
    :name job-name})
 
 (defn- all-jobs [& jobs]
-  [["http://concourse:8000/api/v1/jobs"
-    (successful-json-response jobs)]])
+  ["http://concourse:8000/api/v1/jobs"
+   (successful-json-response jobs)])
 
 (defn- some-builds-up-to [up-to-id team-name pipeline-name job-name & builds]
-  [[(format "http://concourse:8000/api/v1/teams/%s/pipelines/%s/jobs/%s/builds?to=%s"
-            team-name
-            pipeline-name
-            job-name
-            up-to-id)
-    (successful-json-response (map #(assoc %
-                                           :pipeline_name pipeline-name
-                                           :job_name job-name)
-                                   builds))]])
+  [(format "http://concourse:8000/api/v1/teams/%s/pipelines/%s/jobs/%s/builds?to=%s"
+           team-name
+           pipeline-name
+           job-name
+           up-to-id)
+   (successful-json-response (map #(assoc %
+                                          :pipeline_name pipeline-name
+                                          :job_name job-name)
+                                  builds))])
 
 (defn- some-builds [team-name pipeline-name job-name & builds]
   (apply some-builds-up-to (concat ["" team-name pipeline-name job-name] builds)))
 
 (defn- valid-session []
-  [["http://concourse:8000/api/v1/user"
-    (successful-json-response {})]])
+  ["http://concourse:8000/api/v1/user"
+   (successful-json-response {})])
 
 
 (defn- serve-up [& routes]
-  (->> routes
-       (mapcat identity) ; flatten once
-       (into {})))
+  (into {} routes))
 
 (defn- unix-time-in-s [& params]
   (/ (tc/to-long (apply t/date-time params))

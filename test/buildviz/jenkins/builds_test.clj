@@ -17,17 +17,13 @@
   {:name name})
 
 (defn- a-view [& jobs]
-  [["http://jenkins:4321/api/json"
-    (successful-json-response {:jobs jobs})]])
+  ["http://jenkins:4321/api/json"
+   (successful-json-response {:jobs jobs})])
 
 (defn- a-job-with-builds [job-name & builds]
-  (let [job-builds [(format "http://jenkins:4321/job/%s/api/json?tree=allBuilds%%5Bnumber,timestamp,duration,result,actions%%5BlastBuiltRevision%%5BSHA1%%5D,remoteUrls,parameters%%5Bname,value%%5D,causes%%5BupstreamProject,upstreamBuild,userId%%5D%%5D%%5D%%7B0,10%%7D"
-                            job-name)
-                    (successful-json-response {:allBuilds builds})]
-        test-results (map (fn [build]
-                            [(format "http://jenkins:4321/job/%s/%s/testReport/api/json" job-name (:number build))
-                             (fn [_] {:status 404 :body ""})]) builds)]
-    (cons job-builds test-results)))
+  [(format "http://jenkins:4321/job/%s/api/json?tree=allBuilds%%5Bnumber,timestamp,duration,result,actions%%5BlastBuiltRevision%%5BSHA1%%5D,remoteUrls,parameters%%5Bname,value%%5D,causes%%5BupstreamProject,upstreamBuild,userId%%5D%%5D%%5D%%7B0,10%%7D"
+           job-name)
+   (successful-json-response {:allBuilds builds})])
 
 (defn- a-test-case [className name duration status]
   {:className className :name name :duration duration :status status})
@@ -35,14 +31,16 @@
 (defn- a-test-suite [suite-name & test-cases]
   {:name suite-name :cases test-cases})
 
-(defn- some-test-report [job-name build-id & suites]
-  [[(format "http://jenkins:4321/job/%s/%s/testReport/api/json" job-name build-id)
-    (successful-json-response {:suites suites})]])
+(defn- some-test-report [job-name build-number & suites]
+  [(format "http://jenkins:4321/job/%s/%s/testReport/api/json" job-name build-number)
+   (successful-json-response {:suites suites})])
+
+(defn- no-test-report [job-name build-number]
+  [(format "http://jenkins:4321/job/%s/%s/testReport/api/json" job-name build-number)
+   (fn [_] {:status 404 :body ""})])
 
 (defn- serve-up [& routes]
-  (->> routes
-       (mapcat identity)
-       (into {})))
+  (into {} routes))
 
 (def beginning-of-2016 (t/date-time 2016 1 1))
 
@@ -62,7 +60,8 @@
                                                   (a-job-with-builds "some_job" {:number 21
                                                                                  :timestamp 1493201298062
                                                                                  :duration 10200
-                                                                                 :result "SUCCESS"}))
+                                                                                 :result "SUCCESS"})
+                                                  (no-test-report "some_job" 21))
       (is (= '({:job-name "some_job"
                 :build-id "21"
                 :start 1493201298062
@@ -81,7 +80,8 @@
                                                                                            {:parameters '({:name "the-name"
                                                                                                            :value "some-value"})}
                                                                                            {:causes [{:upstreamProject "the_upstream"
-                                                                                                      :upstreamBuild "33"}]}]}))
+                                                                                                      :upstreamBuild "33"}]}]})
+                                                  (no-test-report "some_job" 21))
       (is (= '({:job-name "some_job"
                 :build-id "21"
                 :start 1493201298062
@@ -100,7 +100,8 @@
                                                                                  :result "SUCCESS"
                                                                                  :actions [{:causes [{:upstreamProject "the_upstream"
                                                                                                       :upstreamBuild "33"}]}
-                                                                                           {:causes [{:userId "the_user"}]}]}))
+                                                                                           {:causes [{:userId "the_user"}]}]})
+                                                  (no-test-report "some_job" 21))
       (is (nil? (-> (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")} beginning-of-2016)
                     first
                     :triggered-by)))))
