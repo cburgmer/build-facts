@@ -49,7 +49,7 @@
 
   (testing "should sync a simple build"
     (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
-                                                  (a-job-with-builds "some_job" {:number "21"
+                                                  (a-job-with-builds "some_job" {:number 21
                                                                                  :timestamp 1493201298062
                                                                                  :duration 10200
                                                                                  :result "SUCCESS"}))
@@ -62,7 +62,7 @@
 
   (testing "should include inputs and reference to build it was triggered by"
     (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
-                                                  (a-job-with-builds "some_job" {:number "21"
+                                                  (a-job-with-builds "some_job" {:number 21
                                                                                  :timestamp 1493201298062
                                                                                  :duration 10200
                                                                                  :result "SUCCESS"
@@ -84,7 +84,7 @@
 
   (testing "should omit build trigger if triggered by user due to temporal disconnect"
     (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
-                                                  (a-job-with-builds "some_job" {:number "21"
+                                                  (a-job-with-builds "some_job" {:number 21
                                                                                  :timestamp 1493201298062
                                                                                  :duration 10200
                                                                                  :result "SUCCESS"

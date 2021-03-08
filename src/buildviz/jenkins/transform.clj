@@ -65,6 +65,6 @@
 
 (defn jenkins-build->buildviz-build [{:keys [job-name number] :as build}]
   {:job-name job-name
-   :build-id number
+   :build-id (str number)
    :build (convert-build build)
    :test-results (convert-test-results build)})

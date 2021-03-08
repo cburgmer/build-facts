@@ -74,6 +74,5 @@ This fork needs cleaning up:
 - Remove code reference to buildviz to avoid confusion
 - DEVELOP and examples/ documentation is out of date
 - ./go make_release is broken
-- Jenkins resuming will sync last job again
-- Make the build-id a string, always to align with the triggeredBy schema
 - Move over https://github.com/cburgmer/buildviz/wiki/CI-tool-integration
+- Don't sync past the earliest running build

@@ -18,7 +18,7 @@
 (deftest test-jenkins-build->buildviz-build
   (testing "should map a passed build"
     (is (= {:job-name "my_job"
-            :build-id 42
+            :build-id "42"
             :build {:outcome "pass"
                     :start 1451877290461
                     :end (+ 1451877290461 42)}
