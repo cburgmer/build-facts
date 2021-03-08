@@ -54,17 +54,15 @@
     (assoc map :triggered-by triggered-by)
     map))
 
-(defn- convert-build [{:keys [timestamp duration result] :as build}]
-  (-> {:start timestamp
-       :end (+ timestamp duration)
-       :outcome (if (= result "SUCCESS")
-                  "pass"
-                  "fail")}
-      (with-inputs build)
-      (with-triggered-by build)))
-
-(defn jenkins-build->buildviz-build [{:keys [job-name number] :as build}]
-  {:job-name job-name
-   :build-id (str number)
-   :build (convert-build build)
-   :test-results (convert-test-results build)})
+(defn jenkins-build->buildviz-build [{:keys [job-name number timestamp duration result] :as build}]
+  (let [test-results (convert-test-results build)]
+    (cond-> (-> {:job-name job-name
+                 :build-id (str number)
+                 :start timestamp
+                 :end (+ timestamp duration)
+                 :outcome (if (= result "SUCCESS")
+                            "pass"
+                            "fail")}
+                (with-inputs build)
+                (with-triggered-by build))
+      test-results (assoc :test-results test-results))))

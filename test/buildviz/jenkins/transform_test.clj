@@ -19,10 +19,9 @@
   (testing "should map a passed build"
     (is (= {:job-name "my_job"
             :build-id "42"
-            :build {:outcome "pass"
-                    :start 1451877290461
-                    :end (+ 1451877290461 42)}
-            :test-results nil}
+            :outcome "pass"
+            :start 1451877290461
+            :end (+ 1451877290461 42)}
            (sut/jenkins-build->buildviz-build {:job-name "my_job"
                                                :number 42
                                                :result "SUCCESS"
@@ -30,39 +29,37 @@
                                                :duration 42}))))
 
   (testing "should map a failed build"
-    (is (= {:outcome "fail"
-            :start 1451877290461
-            :end (+ 1451877290461 42)}
-           (:build (sut/jenkins-build->buildviz-build (-> a-jenkins-build
-                                                          (assoc :result "FAILURE")))))))
+    (is (= "fail"
+           (:outcome (sut/jenkins-build->buildviz-build (-> a-jenkins-build
+                                                            (assoc :result "FAILURE")))))))
 
   (testing "should extract Git input"
     (is (= [{:source-id "git://some_git"
              :revision "abcd1234"}]
-           (:inputs (:build (sut/jenkins-build->buildviz-build (-> a-jenkins-build
-                                                                   (assoc :actions [{}
-                                                                                    {:lastBuiltRevision {:SHA1 "abcd1234"}
-                                                                                     :remoteUrls ["git://some_git"]}]))))))))
+           (:inputs (sut/jenkins-build->buildviz-build (-> a-jenkins-build
+                                                           (assoc :actions [{}
+                                                                            {:lastBuiltRevision {:SHA1 "abcd1234"}
+                                                                             :remoteUrls ["git://some_git"]}])))))))
 
   (testing "should extract build parameters"
     (is (= [{:source-id "PARAM_NAME"
              :revision "the value"}]
-           (:inputs (:build (sut/jenkins-build->buildviz-build (-> a-jenkins-build
-                                                                   (assoc :actions [{:parameters [{:name "PARAM_NAME"
-                                                                                                   :value "the value"}]}]))))))))
+           (:inputs (sut/jenkins-build->buildviz-build (-> a-jenkins-build
+                                                           (assoc :actions [{:parameters [{:name "PARAM_NAME"
+                                                                                           :value "the value"}]}])))))))
 
   (testing "should extract build trigger input"
     (is (= [{:job-name "build_name"
              :build-id "42"}]
-           (:triggered-by (:build (sut/jenkins-build->buildviz-build (-> a-jenkins-build
-                                                                        (assoc :actions [{:causes [{:upstreamProject "build_name"
-                                                                                                    :upstreamBuild 42}]}]))))))))
+           (:triggered-by (sut/jenkins-build->buildviz-build (-> a-jenkins-build
+                                                                 (assoc :actions [{:causes [{:upstreamProject "build_name"
+                                                                                             :upstreamBuild 42}]}])))))))
 
   (testing "should omit build trigger if triggered by user due to temporal disconnect"
-    (is (not (contains? (:build (sut/jenkins-build->buildviz-build (-> a-jenkins-build
-                                                                       (assoc :actions [{:causes [{:upstreamProject "build_name"
-                                                                                                   :upstreamBuild 42}]}
-                                                                                        {:causes [{:userId "aUser"}]}]))))
+    (is (not (contains? (sut/jenkins-build->buildviz-build (-> a-jenkins-build
+                                                               (assoc :actions [{:causes [{:upstreamProject "build_name"
+                                                                                           :upstreamBuild 42}]}
+                                                                                {:causes [{:userId "aUser"}]}])))
                         :triggered-by))))
 
   (testing "should omit build trigger if triggered by anonymous user due to temporal disconnect"
@@ -77,11 +74,11 @@
              :build-id "42"}
             {:job-name "build_name"
              :build-id "41"}]
-           (:triggered-by (:build (sut/jenkins-build->buildviz-build (-> a-jenkins-build
-                                                                         (assoc :actions [{:causes [{:upstreamProject "build_name"
-                                                                                                     :upstreamBuild 42}
-                                                                                                    {:upstreamProject "build_name"
-                                                                                                     :upstreamBuild 41}]}]))))))))
+           (:triggered-by (sut/jenkins-build->buildviz-build (-> a-jenkins-build
+                                                                 (assoc :actions [{:causes [{:upstreamProject "build_name"
+                                                                                             :upstreamBuild 42}
+                                                                                            {:upstreamProject "build_name"
+                                                                                             :upstreamBuild 41}]}])))))))
 
   (testing "should convert test results"
     (is (= [{:name "a test suite"
