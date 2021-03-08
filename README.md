@@ -38,6 +38,15 @@ small set of build properties.
       "triggeredBy": [{
         "jobName": "Test",
         "buildId": "42"
+      }],
+      "testResults": [{
+        "name": "Test Suite",
+        "children": [{
+          "classname": "some.class",
+          "name": "A Test",
+          "runtime": 2,
+          "status": "pass"
+        }]
       }]
     }
 
