@@ -25,8 +25,8 @@
        (mapcat #(all-builds-for-job base-url sync-start-time %))
        (map (partial add-test-results base-url))
        (map transform/jenkins-build->buildviz-build)
-       ;; disable test-results while we figure out how to handle them
-       (map (fn [{:keys [job-name build-id build]}]
-              (merge {:job-name job-name
-                      :build-id build-id}
-                     build)))))
+       (map (fn [{:keys [job-name build-id build test-results]}]
+              (cond-> (merge {:job-name job-name
+                              :build-id build-id}
+                             build)
+                test-results (assoc :test-results test-results))))))

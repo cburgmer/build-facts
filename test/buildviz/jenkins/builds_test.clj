@@ -29,6 +29,16 @@
                              (fn [_] {:status 404 :body ""})]) builds)]
     (cons job-builds test-results)))
 
+(defn- a-test-case [className name duration status]
+  {:className className :name name :duration duration :status status})
+
+(defn- a-test-suite [suite-name & test-cases]
+  {:name suite-name :cases test-cases})
+
+(defn- some-test-report [job-name build-id & suites]
+  [[(format "http://jenkins:4321/job/%s/%s/testReport/api/json" job-name build-id)
+    (successful-json-response {:suites suites})]])
+
 (defn- serve-up [& routes]
   (->> routes
        (mapcat identity)
@@ -93,4 +103,26 @@
                                                                                            {:causes [{:userId "the_user"}]}]}))
       (is (nil? (-> (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")} beginning-of-2016)
                     first
-                    :triggered-by))))))
+                    :triggered-by)))))
+
+  (testing "should include test results"
+    (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
+                                                  (a-job-with-builds "some_job" {:number 21
+                                                                                 :timestamp 1493201298062
+                                                                                 :duration 10200
+                                                                                 :result "SUCCESS"
+                                                                                 :actions [{:causes [{:upstreamProject "the_upstream"
+                                                                                                      :upstreamBuild "33"}]}
+                                                                                           {:causes [{:userId "the_user"}]}]})
+                                                  (some-test-report "some_job"
+                                                                    21
+                                                                    (a-test-suite "my-suite"
+                                                                                  (a-test-case "my-class" "my-name" 0.042 "PASSED"))))
+      (is (= '({:name "my-suite"
+                :children ({:classname "my-class"
+                            :name "my-name"
+                            :runtime 42
+                            :status "pass"})})
+             (-> (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")} beginning-of-2016)
+                 first
+                 :test-results))))))
