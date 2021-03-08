@@ -6,7 +6,6 @@
             [clj-time
              [coerce :as tc]
              [core :as t]]
-            [clojure.java.io :as io]
             [clojure.test :refer :all]))
 
 (defn- successful-json-response [body]
@@ -45,7 +44,7 @@
 (def beginning-of-2016 (t/date-time 2016 1 1))
 
 
-(deftest test-sync-jobs
+(deftest test-jenkins-builds
   (testing "should handle no jobs"
     (fake/with-fake-routes-in-isolation (serve-up (a-view))
       (is (empty? (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")} beginning-of-2016)))))
