@@ -31,38 +31,35 @@
               {:revision value
                :source-id name}))))
 
-(defn- with-inputs [map jenkins-build]
-  (if-let [inputs (seq (concat (git-input-from jenkins-build)
-                               (parameters-input-from jenkins-build)))]
-    (assoc map :inputs inputs)
-    map))
+(defn- build-inputs [build]
+  (seq (concat (git-input-from build)
+               (parameters-input-from build))))
 
 (defn- manually-started-by-user? [causes]
   (some #(contains? % :userId) causes))
 
-(defn- triggered-by-from [{actions :actions}]
+(defn- build-triggered-by [{actions :actions}]
   (let [causes (mapcat :causes (filter :causes actions))]
     (when-not (manually-started-by-user? causes)
       (->> causes
            (filter :upstreamProject)
            (map (fn [cause]
                   {:job-name (:upstreamProject cause)
-                   :build-id (.toString (:upstreamBuild cause))}))))))
+                   :build-id (.toString (:upstreamBuild cause))}))
+           seq))))
 
-(defn- with-triggered-by [map jenkins-build]
-  (if-let [triggered-by (seq (triggered-by-from jenkins-build))]
-    (assoc map :triggered-by triggered-by)
-    map))
 
 (defn jenkins-build->buildviz-build [{:keys [job-name number timestamp duration result] :as build}]
-  (let [test-results (convert-test-results build)]
-    (cond-> (-> {:job-name job-name
-                 :build-id (str number)
-                 :start timestamp
-                 :end (+ timestamp duration)
-                 :outcome (if (= result "SUCCESS")
-                            "pass"
-                            "fail")}
-                (with-inputs build)
-                (with-triggered-by build))
+  (let [inputs (build-inputs build)
+        triggered-by (build-triggered-by build)
+        test-results (convert-test-results build)]
+    (cond-> {:job-name job-name
+             :build-id (str number)
+             :start timestamp
+             :end (+ timestamp duration)
+             :outcome (if (= result "SUCCESS")
+                        "pass"
+                        "fail")}
+      inputs (assoc :inputs inputs)
+      triggered-by (assoc :triggered-by triggered-by)
       test-results (assoc :test-results test-results))))
