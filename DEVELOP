@@ -4,13 +4,9 @@ Just a few pointers if you want to make changes to buildviz:
 
     $ ./go
 
-## Inspect JUnit XML file
+## Run sync for Jenkins locally
 
-    $ ./lein run -m buildviz.data.junit-xml MY_JUNIT_RESULTS.xml
-
-## Run sync for GoCD locally
-
-    $ ./lein run -m buildviz.go.sync http://$USER:$PW@localhost:8153/go
+    $ ./lein run -m buildviz.main jenkins http://$USER:$PW@localhost:8080
 
 ## Make a new release
 
@@ -22,7 +18,7 @@ Re-generating the traffic, captured via wiremock, is necessary if a new API is
 accessed in the sync that hasn't been captured yet, or any URL access has been
 slightly changed:
 
-    $ ./test/integration/record_gocd.sh
+    $ ./test/smoke/record_gocd.sh
 
 The recorded file needs to be checked in to provide regression testing for the
 relevant sync job.
