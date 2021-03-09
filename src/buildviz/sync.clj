@@ -16,8 +16,8 @@
 (def two-months-ago (t/minus (.withTimeAtStartOfDay (l/local-now)) (t/months 2)))
 
 (defn- build->splunk-format [build] ;; https://docs.splunk.com/Documentation/Splunk/8.1.2/Data/FormateventsforHTTPEventCollector
-  {:time (/ (:end build)
-            1000)
+  {:time (int (/ (:end build)
+                 1000))
    :source "build-data"
    :event build})
 
