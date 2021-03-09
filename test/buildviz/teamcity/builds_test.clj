@@ -57,16 +57,18 @@
   (testing "should sync a build"
     (fake/with-fake-routes-in-isolation (serve-up (a-project "the_project" (a-job "theJobId" "theProject" "theJob #1"))
                                                   (a-job-with-builds "theJobId" {:id 42
-                                                                                 :number 2
+                                                                                 :number "2"
                                                                                  :status "SUCCESS"
                                                                                  :startDate "20160410T041049+0000"
                                                                                  :finishDate "20160410T041100+0000"})
                                                   (no-test-occurences "theJobId" 42))
-      (is (= {:start 1460261449000
+      (is (= {:job-name "theProject theJob #1"
+              :build-id "2"
+              :start 1460261449000
               :end 1460261460000
               :outcome "pass"}
-             (:build (first (sut/teamcity-builds {:base-url (url/url "http://teamcity:8000")
-                                                   :projects ["the_project"]} beginning-of-2016)))))))
+             (first (sut/teamcity-builds {:base-url (url/url "http://teamcity:8000")
+                                          :projects ["the_project"]} beginning-of-2016))))))
 
   (testing "should sync in ascending order by date"
     (fake/with-fake-routes-in-isolation (serve-up (a-project "the_project"

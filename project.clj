@@ -21,7 +21,6 @@
   :main buildviz.main
   :aot [buildviz.main
         buildviz.go.sync
-        buildviz.teamcity.sync
         buildviz.data.junit-xml]
   :profiles {:dev {:dependencies [[clj-http-fake "1.0.3"]]
                    :plugins [[lein-ancient "1.0.0-RC3"]]}

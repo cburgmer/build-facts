@@ -3,6 +3,7 @@
   (:require [buildviz.shared :as shared]
             [buildviz.jenkins :as jenkins]
             [buildviz.concourse :as concourse]
+            [buildviz.teamcity :as teamcity]
             [clojure.string :as string]
             [clojure.tools.cli :refer [parse-opts]]))
 
@@ -17,7 +18,8 @@
                 ""
                 "Actions:"
                 "  concourse    Reads build data from Concourse"
-                "  jenkins      Reads build data from Jenkins"]))
+                "  jenkins      Reads build data from Jenkins"
+                "  teamcity     Reads build data from TeamCity"]))
 
 (defn- parse-options [c-args]
   (let [args (parse-opts c-args shared/cli-options :in-order true)]
@@ -41,5 +43,6 @@
     (case action
       "concourse" (concourse/run options)
       "jenkins" (jenkins/run options)
+      "teamcity" (teamcity/run options)
       (do (println "Unknown action. Try --help.")
           (System/exit 1)))))

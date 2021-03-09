@@ -8,8 +8,7 @@
 
 (defn jenkins-usage [options-summary]
   (string/join "\n"
-               [""
-                "Syncs Jenkins build history"
+               ["Syncs Jenkins build history"
                 ""
                 "Usage: buildviz.main [OPTIONS] jenkins JENKINS_URL"
                 ""

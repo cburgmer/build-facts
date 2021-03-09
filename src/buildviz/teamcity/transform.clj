@@ -46,7 +46,8 @@
 
 
 (defn teamcity-build->buildviz-build [{:keys [build tests project-name job-name]}]
-  {:job-name (full-job-name project-name job-name)
-   :build-id (:number build)
-   :build (convert-build build)
-   :test-results (convert-test-results tests)})
+  (let [test-results (convert-test-results tests)]
+    (cond-> {:job-name (full-job-name project-name job-name)
+             :build-id (:number build)}
+      true (merge (convert-build build))
+      test-results (assoc :test-results test-results))))

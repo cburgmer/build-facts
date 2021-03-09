@@ -7,8 +7,7 @@
 
 (defn concourse-usage [options-summary]
   (string/join "\n"
-               [""
-                "Syncs Concourse build history"
+               ["Syncs Concourse build history"
                 ""
                 "Usage: buildviz.main [OPTIONS] concourse CONCOURSE_TARGET"
                 ""

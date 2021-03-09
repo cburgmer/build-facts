@@ -29,16 +29,16 @@
 
   (testing "should return successful status"
     (is (= "pass"
-           (:outcome (:build (sut/teamcity-build->buildviz-build (a-teamcity-build {:status "SUCCESS"})))))))
+           (:outcome  (sut/teamcity-build->buildviz-build (a-teamcity-build {:status "SUCCESS"}))))))
   (testing "should return failed status"
     (is (= "fail"
-           (:outcome (:build (sut/teamcity-build->buildviz-build (a-teamcity-build {:status "FAILURE"})))))))
+           (:outcome (sut/teamcity-build->buildviz-build (a-teamcity-build {:status "FAILURE"}))))))
   (testing "should return start timestamp"
     (is (= 1459585432000
-           (:start (:build (sut/teamcity-build->buildviz-build (a-teamcity-build {:startDate "20160402T082352+0000"})))))))
+           (:start (sut/teamcity-build->buildviz-build (a-teamcity-build {:startDate "20160402T082352+0000"}))))))
   (testing "should return end timestamp"
     (is (= 1459585450000
-           (:end (:build (sut/teamcity-build->buildviz-build (a-teamcity-build {:finishDate "20160402T082410+0000"})))))))
+           (:end (sut/teamcity-build->buildviz-build (a-teamcity-build {:finishDate "20160402T082410+0000"}))))))
 
   (testing "should return triggeredBy information"
     (is (= [{:job-name "project job_name"
@@ -48,16 +48,15 @@
                                                                     :number "42"}]}
                                    :triggered {:type "unknown"}})
                 sut/teamcity-build->buildviz-build
-                :build
                 :triggered-by))))
 
   (testing "should omit build trigger if triggered by user due to temporal disconnect"
-    (is (not (contains? (:build (sut/teamcity-build->buildviz-build
-                                 (a-teamcity-build
-                                  {:snapshot-dependencies {:build [{:buildType {:name "job_name"
-                                                                                :projectName "project"}
-                                                                    :number 42}]}
-                                   :triggered {:type "user"}})))
+    (is (not (contains? (sut/teamcity-build->buildviz-build
+                         (a-teamcity-build
+                          {:snapshot-dependencies {:build [{:buildType {:name "job_name"
+                                                                        :projectName "project"}
+                                                            :number 42}]}
+                           :triggered {:type "user"}}))
                         :triggered-by))))
 
   (testing "should return tests"
@@ -184,8 +183,7 @@
            (-> (sut/teamcity-build->buildviz-build
                 (a-teamcity-build {:revisions {:revision [{:version "49b2c70535fa0ed936697c9b352495c6a835f90b"
                                                            :vcs-root-instance {:name "https://github.com/cburgmer/buildviz.git"}}]}}))
-               :build
                :inputs))))
   (testing "should handle optional inputs"
-    (is (not (contains? (:build (sut/teamcity-build->buildviz-build (a-teamcity-build-with-test {})))
+    (is (not (contains? (sut/teamcity-build->buildviz-build (a-teamcity-build-with-test {}))
                         :inputs)))))
