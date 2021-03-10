@@ -79,9 +79,7 @@ If you happen to receive JUnit XML test results, you can inspect them via
 
 This fork needs cleaning up:
 
-- Teamcity syncs test results as JSON with wrong file ending
 - Remove code reference to buildviz to avoid confusion
-- DEVELOP and examples/ documentation is out of date
 - ./go make_release is broken
 - Move over https://github.com/cburgmer/buildviz/wiki/CI-tool-integration
 - Don't sync past the earliest running build
