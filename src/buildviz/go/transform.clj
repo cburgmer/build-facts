@@ -94,10 +94,11 @@
                                                              pipeline-run
                                                              stage-name
                                                              stage-run
-                                                             pipeline-instance))]
-    {:job-name (job-name pipeline-name stage-name)
-     :build-id (build-id pipeline-run stage-run)
-     :junit-xml (aggregate-testresults job-instances)
-     :build (cond-> (aggregate-builds stage-run job-instances)
-              inputs (assoc :inputs inputs)
-              triggered-by (assoc :triggered-by triggered-by))}))
+                                                             pipeline-instance))
+        junit-xml (aggregate-testresults job-instances)]
+    (cond-> {:job-name (job-name pipeline-name stage-name)
+             :build-id (build-id pipeline-run stage-run)
+             :build (cond-> (aggregate-builds stage-run job-instances)
+                      inputs (assoc :inputs inputs)
+                      triggered-by (assoc :triggered-by triggered-by))}
+      junit-xml (assoc :junit-xml junit-xml))))
