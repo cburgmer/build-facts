@@ -11,6 +11,13 @@ You then take it from there with your own analytics. See
 https://github.com/cburgmer/buildviz for an example on what is possible with a
 small set of build properties.
 
+## Why?
+
+It's hard to innovate when every pipeline has their own format of reporting
+build data. By offering a more standard format, we hope that it becomes
+feasible to share build analytics across users of different build servers.
+Let's hope we don't lose too much information on the way.
+
 ## Features
 
 - Streams standardized build data
