@@ -96,9 +96,9 @@
                                                              stage-run
                                                              pipeline-instance))
         junit-xml (aggregate-testresults job-instances)]
-    (cond-> {:job-name (job-name pipeline-name stage-name)
-             :build-id (build-id pipeline-run stage-run)
-             :build (cond-> (aggregate-builds stage-run job-instances)
-                      inputs (assoc :inputs inputs)
-                      triggered-by (assoc :triggered-by triggered-by))}
+    (cond-> (merge {:job-name (job-name pipeline-name stage-name)
+                    :build-id (build-id pipeline-run stage-run)}
+                   (aggregate-builds stage-run job-instances))
+      inputs (assoc :inputs inputs)
+      triggered-by (assoc :triggered-by triggered-by)
       junit-xml (assoc :junit-xml junit-xml))))

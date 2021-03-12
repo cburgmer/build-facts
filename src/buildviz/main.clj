@@ -1,8 +1,9 @@
 (ns buildviz.main
   (:gen-class)
   (:require [buildviz.shared :as shared]
-            [buildviz.jenkins :as jenkins]
             [buildviz.concourse :as concourse]
+            [buildviz.gocd :as gocd]
+            [buildviz.jenkins :as jenkins]
             [buildviz.teamcity :as teamcity]
             [clojure.string :as string]
             [clojure.tools.cli :refer [parse-opts]]))
@@ -18,6 +19,7 @@
                 ""
                 "Actions:"
                 "  concourse    Reads build data from Concourse"
+                "  gocd         Reads build data from GoCD"
                 "  jenkins      Reads build data from Jenkins"
                 "  teamcity     Reads build data from TeamCity"]))
 
@@ -42,6 +44,7 @@
 
     (case action
       "concourse" (concourse/run options)
+      "gocd" (gocd/run options)
       "jenkins" (jenkins/run options)
       "teamcity" (teamcity/run options)
       (do (println "Unknown action. Try --help.")

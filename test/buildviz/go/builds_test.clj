@@ -154,10 +154,10 @@
                 (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
       (is (= '({:job-name "Build :: DoStuff"
                 :build-id "42"
-                :build {:start 1483264800000
-                        :end 1483272000000
-                        :outcome "pass"
-                        :inputs [{:revision "AnotherPipeline/21", :sourceId 7}]}})
+                :start 1483264800000
+                :end 1483272000000
+                :outcome "pass"
+                :inputs [{:revision "AnotherPipeline/21", :sourceId 7}]})
              (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
                                :pipeline-group-names nil}
                               beginning-of-2016)))))
@@ -185,7 +185,6 @@
                                    :pipeline-group-names nil}
                                   beginning-of-2016)
                  first
-                 :build
                  :triggered-by)))))
 
   (testing "should not sync a forced build trigger"
@@ -205,7 +204,6 @@
                                       :pipeline-group-names nil}
                                      beginning-of-2016)
                     first
-                    :build
                     :triggered-by)))))
 
   (testing "should not count a source revision cause as pipeline trigger"
@@ -229,7 +227,6 @@
                                       :pipeline-group-names nil}
                                      beginning-of-2016)
                     first
-                    :build
                     :triggered-by)))))
 
   (testing "should only sync build trigger from pipeline material for first stage"
@@ -259,12 +256,10 @@
         (is (some #(= pipeline-trigger %)
                   (-> (filter #(= (:job-name %) "Build :: DoStuff") builds)
                       first
-                      :build
                       :triggered-by)))
         (is (nil? (some #(= pipeline-trigger %)
                         (-> (filter #(= (:job-name %) "Build :: MoreStuff") builds)
                             first
-                            :build
                             :triggered-by)))))))
 
   (testing "should sync build trigger from stage of same pipeline"
@@ -300,7 +295,6 @@
                                    beginning-of-2016)
                   (filter #(= (:job-name %) "Build :: MoreStuff"))
                   first
-                  :build
                   :triggered-by)))))
 
   (testing "should handle a rerun"
@@ -356,7 +350,6 @@
                                       beginning-of-2016)
                      (filter #(= (:job-name %) "Build :: MoreStuff"))
                      first
-                     :build
                      :triggered-by)))))
 
   (testing "should sync a failing stage"
@@ -376,10 +369,10 @@
                 (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
       (is (= '({:job-name "Build :: DoStuff"
                 :build-id "42"
-                :build {:start 1483264800000
-                        :end 1483272000000
-                        :outcome "fail"
-                        :inputs []}})
+                :start 1483264800000
+                :end 1483272000000
+                :outcome "fail"
+                :inputs []})
              (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
                                :pipeline-group-names nil}
                               beginning-of-2016)))))
