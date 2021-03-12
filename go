@@ -17,13 +17,13 @@ goal_test_smoke() {
     echo
     echo "Running smoke test against recorded endpoints."
     echo "If this fails you might have changed how the endpoints are requested, and might want to record from scratch."
-    echo "Testing buildviz.go.sync"
+    echo "Testing GoCD sync"
     "${SCRIPT_DIR}/test/smoke/test_gocd.sh"
-    echo "Testing buildviz.jenkins.sync"
+    echo "Testing Jenkins sync"
     "${SCRIPT_DIR}/test/smoke/test_jenkins.sh"
-    echo "Testing buildviz.teamcity.sync"
+    echo "Testing TeamCity sync"
     "${SCRIPT_DIR}/test/smoke/test_teamcity.sh"
-    echo "Testing buildviz.concourse.sync"
+    echo "Testing Concourse sync"
     "${SCRIPT_DIR}/test/smoke/test_concourse.sh"
 }
 

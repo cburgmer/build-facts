@@ -63,7 +63,7 @@ login() {
 }
 
 sync_builds() {
-    "${SCRIPT_DIR}/../../lein" run -m buildviz.concourse.sync "$CONCOURSE_TARGET"
+    "${SCRIPT_DIR}/../../lein" run -m buildviz.main concourse "$CONCOURSE_TARGET"
 }
 
 clean_up() {

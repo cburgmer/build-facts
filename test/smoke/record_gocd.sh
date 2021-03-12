@@ -5,13 +5,10 @@ readonly SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 readonly MAPPING_TARGET="${SCRIPT_DIR}/gocd.tar.gz"
 readonly EXAMPLE_DIR="${SCRIPT_DIR}/../../examples/gocd"
-readonly DATA_DIR="${SCRIPT_DIR}/../../examples/data"
 
 readonly WIREMOCK_PORT="3340"
-readonly BUILDVIZ_PORT="3350"
 
 readonly WIREMOCK_BASE_URL="http://localhost:${WIREMOCK_PORT}"
-readonly BUILDVIZ_BASE_URL="http://localhost:${BUILDVIZ_PORT}"
 readonly GOCD_BASE_URL="http://localhost:8153"
 readonly SYNC_URL="${WIREMOCK_BASE_URL}/go"
 
@@ -28,14 +25,6 @@ start_container() {
 
 stop_container() {
     "$EXAMPLE_DIR/run.sh" stop
-}
-
-start_buildviz() {
-    PORT="$BUILDVIZ_PORT" "${DATA_DIR}/run_buildviz.sh" start
-}
-
-stop_buildviz() {
-    "${DATA_DIR}/run_buildviz.sh" stop
 }
 
 start_wiremock() {
@@ -61,12 +50,11 @@ stop_wiremock() {
 }
 
 sync_builds() {
-    "${SCRIPT_DIR}/../../lein" run -m buildviz.go.sync "$SYNC_URL" --buildviz="$BUILDVIZ_BASE_URL" --from 2000-01-01
+    "${SCRIPT_DIR}/../../lein" run -m buildviz.main gocd "$SYNC_URL" --from 2000-01-01
 }
 
 clean_up() {
     stop_container
-    stop_buildviz
     stop_wiremock
 }
 
@@ -84,7 +72,6 @@ main() {
     trap clean_up EXIT
 
     start_container
-    start_buildviz
     start_wiremock
 
     sync_builds
