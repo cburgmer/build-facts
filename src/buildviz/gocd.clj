@@ -10,7 +10,7 @@
   (concat
    shared/cli-options
    [["-g" "--pipeline-group PIPELINE_GROUP" "Go pipeline groups to be synced, all by default"
-     :id :pipeline-group-names
+     :id :pipeline-groups
      :default nil
      :assoc-fn (fn [previous key val] (assoc previous key (conj (get previous key) val)))]]))
 
@@ -40,8 +40,7 @@
       (shared/assert-parameter #(some? base-url) "The URL for GoCD is required. Try --help.")
 
       (merge (:options args)
-             {:base-url (url/url base-url)
-              :pipeline-group-names (set (:pipeline-group-names (:options args)))}))))
+             {:base-url (url/url base-url)}))))
 
 (defn run [options]
   (let [gocd-options (merge options

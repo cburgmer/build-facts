@@ -122,18 +122,18 @@
   (testing "should handle no pipeline groups"
     (fake/with-fake-routes-in-isolation (serve-up (a-config))
       (is (empty? (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-group-names nil} beginning-of-2016)))))
+                                    :pipeline-groups nil} beginning-of-2016)))))
 
   (testing "should handle empty pipeline group"
     (fake/with-fake-routes-in-isolation (serve-up (a-config (a-pipeline-group "Development")))
       (is (empty? (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-group-names nil} beginning-of-2016)))))
+                                    :pipeline-groups nil} beginning-of-2016)))))
 
   (testing "should handle empty pipeline"
     (fake/with-fake-routes-in-isolation (serve-up (a-config (a-pipeline-group "Development"
                                                                               (a-pipeline "Build"))))
       (is (empty? (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-group-names nil} beginning-of-2016)))))
+                                    :pipeline-groups nil} beginning-of-2016)))))
 
   (testing "should sync a stage"
     (fake/with-fake-routes-in-isolation
@@ -159,8 +159,44 @@
                 :outcome "pass"
                 :inputs [{:revision "AnotherPipeline/21", :sourceId 7}]})
              (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                               :pipeline-group-names nil}
+                               :pipeline-groups nil}
                               beginning-of-2016)))))
+
+  (testing "should only sync given pipeline groups"
+    (fake/with-fake-routes-in-isolation
+      (serve-up (a-config (a-pipeline-group "Development"
+                                            (a-pipeline "Build"
+                                                        (a-stage "DoStuff")))
+                          (a-pipeline-group "AnotherGroup"
+                                            (a-pipeline "SomePipeline"
+                                                        (a-stage "SomeStage"))))
+                (a-short-history "Build" "DoStuff"
+                                 (a-stage-run 42 "1" "Passed"
+                                              (a-job-run "AlphaJob" 1493201298062 321)))
+                (a-short-history "SomePipeline" "SomeStage"
+                                 (a-stage-run 42 "1" "Passed"
+                                              (a-job-run "SomeJob" 1493201298062 456)))
+                (a-pipeline-run "Build" 42
+                                [(a-stage-run "DoStuff" "1")])
+                (a-pipeline-run "SomePipeline" 42
+                                [(a-stage-run "SomeStage" "1")])
+                (a-builds-properties 321
+                                     {:start-time (t/date-time 2017 1 1 10 0 0)
+                                      :end-time (t/date-time 2017 1 1 12 0)
+                                      :outcome "Passed"
+                                      :actual-stage-run "1"})
+                (a-builds-properties 456
+                                     {:start-time (t/date-time 2017 1 1 10 0 0)
+                                      :end-time (t/date-time 2017 1 1 12 0)
+                                      :outcome "Passed"
+                                      :actual-stage-run "1"})
+                (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob")
+                (a-file-list "SomePipeline" 42 "SomeStage" "1" "SomeJob"))
+      (is (= '("Build :: DoStuff")
+             (->> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
+                                    :pipeline-groups '("Development")}
+                                   beginning-of-2016)
+                  (map :job-name))))))
 
   (testing "should sync a build trigger from another pipeline"
     (fake/with-fake-routes-in-isolation
@@ -182,7 +218,7 @@
       (is (= [{:job-name "AnotherPipeline :: AnotherStage"
                :build-id "21 (Run 2)"}]
              (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                   :pipeline-group-names nil}
+                                   :pipeline-groups nil}
                                   beginning-of-2016)
                  first
                  :triggered-by)))))
@@ -201,7 +237,7 @@
                 (a-builds-properties 321 {})
                 (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
       (is (nil? (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                      :pipeline-group-names nil}
+                                      :pipeline-groups nil}
                                      beginning-of-2016)
                     first
                     :triggered-by)))))
@@ -224,7 +260,7 @@
                                       :actual-stage-run "1"})
                 (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
       (is (nil? (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                      :pipeline-group-names nil}
+                                      :pipeline-groups nil}
                                      beginning-of-2016)
                     first
                     :triggered-by)))))
@@ -251,7 +287,7 @@
       (let [pipeline-trigger {:job-name "AnotherPipeline :: AnotherStage"
                               :build-id "21 (Run 2)"}
             builds (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                     :pipeline-group-names nil}
+                                     :pipeline-groups nil}
                                     beginning-of-2016)]
         (is (some #(= pipeline-trigger %)
                   (-> (filter #(= (:job-name %) "Build :: DoStuff") builds)
@@ -291,7 +327,7 @@
       (is (= [{:job-name "Build :: DoStuff"
                :build-id "42"}]
              (->> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-group-names nil}
+                                    :pipeline-groups nil}
                                    beginning-of-2016)
                   (filter #(= (:job-name %) "Build :: MoreStuff"))
                   first
@@ -314,7 +350,7 @@
                 (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
       (is (= "42 (Run 2)"
              (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                   :pipeline-group-names nil}
+                                   :pipeline-groups nil}
                                   beginning-of-2016)
                  first
                  :build-id)))))
@@ -346,7 +382,7 @@
                 (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob")
                 (a-file-list "Build" 42 "MoreStuff" "1" "defaultJob"))
       (is (nil? (->> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                       :pipeline-group-names nil}
+                                       :pipeline-groups nil}
                                       beginning-of-2016)
                      (filter #(= (:job-name %) "Build :: MoreStuff"))
                      first
@@ -374,7 +410,7 @@
                 :outcome "fail"
                 :inputs []})
              (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                               :pipeline-group-names nil}
+                               :pipeline-groups nil}
                               beginning-of-2016)))))
 
   (testing "should ignore an ongoing stage"
@@ -386,7 +422,7 @@
                                  (a-stage-run 42 "1" "Unknown"
                                               (a-job-run "AlphaJob" 1493201298062 321))))
       (is (empty? (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-group-names nil}
+                                    :pipeline-groups nil}
                                    beginning-of-2016)))))
 
   (testing "should ignore a stage who's job ran before the sync date offset"
@@ -405,7 +441,7 @@
                                                             9001)
                                                          987))))
       (is (empty? (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-group-names nil}
+                                    :pipeline-groups nil}
                                    beginning-of-2016)))))
 
   (testing "should only sync stage of pipeline that's after the sync date offset"
@@ -430,7 +466,7 @@
                 (a-file-list "Build" 42 "SomeMore" "1" "SomeJob"))
       (is (= '("Build :: SomeMore")
              (->> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-group-names nil}
+                                    :pipeline-groups nil}
                                    beginning-of-2016)
                   (map :job-name))))))
 
@@ -453,7 +489,7 @@
                         "<testsuites></testsuites>"))
       (is (= '("<testsuites></testsuites>")
              (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                   :pipeline-group-names nil}
+                                   :pipeline-groups nil}
                                   beginning-of-2016)
                  first
                  :junit-xml)))))
@@ -479,7 +515,7 @@
                         "<testsuites><testsuite name=\"other\"></testsuite></testsuites>"))
       (is (= '("<testsuite name=\"one\"></testsuite>" "<testsuites><testsuite name=\"other\"></testsuite></testsuites>")
              (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                   :pipeline-group-names nil}
+                                   :pipeline-groups nil}
                                   beginning-of-2016)
                  first
                  :junit-xml)))))
@@ -508,7 +544,7 @@
                         "<testsuites><testsuite name=\"Beta\"></testsuite></testsuites>"))
       (is (= '("<testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>" "<testsuites><testsuite name=\"Beta\"></testsuite></testsuites>")
              (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                   :pipeline-group-names nil}
+                                   :pipeline-groups nil}
                                   beginning-of-2016)
                  first
                  :junit-xml)))))
@@ -533,7 +569,7 @@
                         "<testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>"))
       (is (= '("<testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>")
              (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                   :pipeline-group-names nil}
+                                   :pipeline-groups nil}
                                   beginning-of-2016)
                  first
                  :junit-xml)))))
@@ -559,7 +595,7 @@
                         "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <!-- comments are fine -->  <testsuites></testsuites>"))
       (is (= '("<?xml version=\"1.0\" encoding=\"UTF-8\"?> <!-- comments are fine -->  <testsuites></testsuites>")
              (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                   :pipeline-group-names nil}
+                                   :pipeline-groups nil}
                                   beginning-of-2016)
                  first
                  :junit-xml))))))

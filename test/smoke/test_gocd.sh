@@ -27,7 +27,7 @@ stop_wiremock() {
 }
 
 sync_builds() {
-    GOCD_USER="my_user" GOCD_PASSWORD="my_password" "${SCRIPT_DIR}/../../lein" run -m buildviz.main gocd "$SYNC_URL" --from 2000-01-01
+    GOCD_USER="my_user" GOCD_PASSWORD="my_password" "${SCRIPT_DIR}/../../lein" run -m buildviz.main gocd "$SYNC_URL" --from 2000-01-01 -g defaultGroup
 }
 
 ensure_user_agent() {

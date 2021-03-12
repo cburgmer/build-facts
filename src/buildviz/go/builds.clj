@@ -42,7 +42,8 @@
 
 (defn- select-pipelines [selected-groups pipelines]
   (if (seq selected-groups)
-    (filter #(contains? selected-groups (:group %)) pipelines)
+    (let [selected-groups-set (set selected-groups)]
+      (filter #(contains? selected-groups-set (:group %)) pipelines))
     pipelines))
 
 (defn- pipeline->stages [{pipeline-name :name stages :stages}]
@@ -54,10 +55,10 @@
 
 ;; run
 
-(defn gocd-builds [{base-url :base-url pipeline-group-names :pipeline-group-names}
+(defn gocd-builds [{base-url :base-url pipeline-groups :pipeline-groups}
                    sync-start-time]
   (->> (goapi/get-pipelines base-url)
-       (select-pipelines pipeline-group-names)
+       (select-pipelines pipeline-groups)
        (mapcat pipeline->stages)
        (mapcat #(stage-instances-from base-url sync-start-time %))
        (sort-by :scheduled-time)
