@@ -1,7 +1,7 @@
 (ns buildviz.gocd
   (:require [buildviz.shared :as shared]
             [buildviz.sync :as sync]
-            [buildviz.go.builds :as builds]
+            [buildviz.gocd.builds :as builds]
             [buildviz.util.url :as url]
             [clojure.string :as string]
             [clojure.tools.cli :refer [parse-opts]]))

@@ -1,4 +1,4 @@
-(ns buildviz.go.transform
+(ns buildviz.gocd.transform
   (:require [clojure.string :as str]))
 
 (defn- job-name [pipeline-name stage-name]

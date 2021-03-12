@@ -1,5 +1,5 @@
-(ns buildviz.go.builds-test
-  (:require [buildviz.go.builds :as sut]
+(ns buildviz.gocd.builds-test
+  (:require [buildviz.gocd.builds :as sut]
             [buildviz.util.url :as url]
             [cheshire.core :as j]
             [clj-http.fake :as fake]

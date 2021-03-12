@@ -1,4 +1,4 @@
-(ns buildviz.go.api
+(ns buildviz.gocd.api
   (:require [buildviz.util.url :as url]
             [cheshire.core :as j]
             [clj-http.client :as client]

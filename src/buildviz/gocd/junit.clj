@@ -1,4 +1,4 @@
-(ns buildviz.go.junit
+(ns buildviz.gocd.junit
   (:require [clojure.data.xml :as xml]
             [clojure.tools.logging :as log]))
 

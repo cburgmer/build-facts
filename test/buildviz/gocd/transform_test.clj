@@ -1,5 +1,5 @@
-(ns buildviz.go.transform-test
-  (:require [buildviz.go.transform :as transform]
+(ns buildviz.gocd.transform-test
+  (:require [buildviz.gocd.transform :as transform]
             [clojure.test :refer :all]))
 
 (defn- a-job-instance
