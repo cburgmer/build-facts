@@ -61,23 +61,24 @@
 (defn- testcase? [elem]
   (= :testcase (:tag elem)))
 
-(defn- parseable-content [elem]
-  (let [children (:content elem)]
-    (filter #(or (testcase? %) (testsuite? %)) children)))
-
-(declare parse-testsuite)
-
-(defn- testsuite [testsuite-elem]
+(defn- testsuite [testsuite-elem testcase-elems]
   {:name (assert-not-nil (parse-name testsuite-elem) "No name given for testsuite (or invalid element)")
-   :children (->> (parseable-content testsuite-elem)
-                  (map parse-testsuite)
+   :children (->> testcase-elems
+                  (map testcase)
                   doall ; realise XML parsing immediately, so we can catch errors without failing later once lazy sequence is evaluated
                   )})
 
 (defn- parse-testsuite [elem]
-  (if (testsuite? elem)
-    (testsuite elem)
-    (testcase elem)))
+  (let [parent-testsuite (testsuite elem (->> (:content elem)
+                                              (filter testcase?)))
+        nested-testsuite-elems (->> (:content elem)
+                                    (filter testsuite?))]
+    (cons parent-testsuite
+          (->> nested-testsuite-elems
+               (mapcat parse-testsuite)
+               (map #(update-in % [:name] (fn [name] (format "%s: %s"
+                                                             (:name parent-testsuite)
+                                                             name))))))))
 
 (defn- all-testsuites [root]
   (if (testsuite? root)
@@ -86,5 +87,5 @@
 
 (defn parse-testsuites [junit-xml-result]
   (let [root (xml/parse-str junit-xml-result)]
-    (map parse-testsuite
+    (mapcat parse-testsuite
          (all-testsuites root))))

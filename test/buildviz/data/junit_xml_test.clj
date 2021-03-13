@@ -39,18 +39,34 @@
                          :status "pass"}]}]
            (junit-xml/parse-testsuites "<testsuite name=\"a suite\"><testcase class=\"the class\" name=\"a test\"></testcase></testsuite>"))))
 
-  (testing "testsuite nesting"
+  (testing "should flatten nested testsuite"
     (is (= [{:name "a suite"
-             :children [{:name "a sub suite"
-                         :children [{:name "a test"
-                                     :classname "the class"
-                                     :status "pass"}]}]}]
-           (junit-xml/parse-testsuites "<testsuite name=\"a suite\"><testsuite name=\"a sub suite\"><testcase classname=\"the class\" name=\"a test\"></testcase></testsuite></testsuite>")))
+             :children [{:name "another test"
+                         :classname "another class"
+                         :status "pass"}]}
+            {:name "a suite: a sub suite"
+             :children [{:name "a test"
+                         :classname "the class"
+                         :status "pass"}]}]
+           (junit-xml/parse-testsuites "<testsuite name=\"a suite\"><testsuite name=\"a sub suite\"><testcase classname=\"the class\" name=\"a test\"></testcase></testsuite><testcase classname=\"another class\" name=\"another test\"></testcase></testsuite>"))))
+
+  (testing "should handle multiple nestings"
+    (is (= [{:name "A"
+             :children []}
+            {:name "A: B"
+             :children []}
+            {:name "A: B: C"
+             :children []}]
+           (junit-xml/parse-testsuites "<testsuite name=\"A\"><testsuite name=\"B\"><testsuite name=\"C\"></testsuite></testsuite></testsuite>"))))
+
+  (testing "testsuite wrapped in testsuites"
     (is (= [{:name "a suite"
              :children [{:name "a test"
                          :classname "the class"
                          :status "pass"}]}]
-           (junit-xml/parse-testsuites "<testsuites><testsuite name=\"a suite\"><testcase classname=\"the class\" name=\"a test\"></testcase></testsuite></testsuites>")))
+           (junit-xml/parse-testsuites "<testsuites><testsuite name=\"a suite\"><testcase classname=\"the class\" name=\"a test\"></testcase></testsuite></testsuites>"))))
+
+  (testing "multiple test suites"
     (is (= [{:name "a suite"
              :children [{:name "a test"
                          :classname "some class"
