@@ -7,11 +7,6 @@
 
 ;; Parsing is following schema documented in http://llg.cubic.org/docs/junit/
 
-;; https://stackoverflow.com/questions/44281495/format-string-representation-of-float-according-to-english-locale-with-clojure/44287007
-(defn format-locale-neutral [fmt n]
-  (let [locale (Locale. "en-US")]
-    (String/format locale fmt (into-array Object [n]))))
-
 (defn- is-failure? [testcase-elem]
   (some #(= :failure (:tag %))
         (:content testcase-elem)))
@@ -42,10 +37,10 @@
 
 (defn- parse-status [testcase-elem]
   (cond
-    (is-failure? testcase-elem) :fail
-    (is-error? testcase-elem) :error
-    (is-skipped? testcase-elem) :skipped
-    :else :pass))
+    (is-failure? testcase-elem) "fail"
+    (is-error? testcase-elem) "error"
+    (is-skipped? testcase-elem) "skipped"
+    :else "pass"))
 
 (defn- parse-classname [testcase-elem]
   (if-let [classname (:classname (:attrs testcase-elem))]
@@ -77,8 +72,10 @@
 
 (defn- testsuite [testsuite-elem]
   {:name (assert-not-nil (parse-name testsuite-elem) "No name given for testsuite (or invalid element)")
-   :children (map parse-testsuite
-                  (parseable-content testsuite-elem))})
+   :children (->> (parseable-content testsuite-elem)
+                  (map parse-testsuite)
+                  doall ; realise XML parsing immediately, so we can catch errors without failing later once lazy sequence is evaluated
+                  )})
 
 (defn- parse-testsuite [elem]
   (if (testsuite? elem)
@@ -94,67 +91,3 @@
   (let [root (xml/parse-str junit-xml-result)]
     (map parse-testsuite
          (all-testsuites root))))
-
-
-
-(declare element->node)
-
-(defn format-runtime-in-millis [duration]
-  (format-locale-neutral "%.3f" (float (/ duration 1000))))
-
-(defn- testcase-status->node [status]
-  (case status
-    "fail" (xml/element "failure")
-    "error" (xml/element "error")
-    "skipped" (xml/element "skipped")
-    nil))
-
-(defn- testcase->node [{:keys [name classname runtime status]}]
-  (let [status-element (testcase-status->node status)
-        testcase-attributes (cond-> {:name name
-                                     :classname classname}
-                              runtime (assoc :time (format-runtime-in-millis runtime)))]
-    (apply xml/element (list* :testcase
-                              testcase-attributes
-                              (list status-element)))))
-
-(defn- testsuite->node [{:keys [:name :children]}]
-  (apply xml/element (list* :testsuite
-                            {:name name}
-                            (map element->node children))))
-
-(defn- element->node [element]
-  (if (contains? element :children)
-    (testsuite->node element)
-    (testcase->node element)))
-
-(defn- testsuites->node [testsuites]
-  (apply xml/element (list* :testsuites {} (map element->node testsuites))))
-
-(defn serialize-testsuites [testsuites]
-  (xml/emit-str (testsuites->node testsuites)))
-
-
-(declare node->string)
-
-(defn- testcase->string [{:keys [name classname runtime status]}]
-  (format "%s.%s\t%s\t%s" classname name (format-runtime-in-millis runtime) status))
-
-(defn- testsuite->string [{:keys [:name :children]}]
-  (cons name
-        (->> children
-             (mapcat node->string)
-             (map #(str "  " %)))))
-
-(defn- node->string [element]
-  (if (contains? element :children)
-    (testsuite->string element)
-    (list (testcase->string element))))
-
-(defn to-string [testsuites]
-  (doall (map println (mapcat node->string testsuites))))
-
-(defn -main [path]
-  (let [xml (slurp (io/file path))
-        testsuites (parse-testsuites xml)]
-    (to-string testsuites)))

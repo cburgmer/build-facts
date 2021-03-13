@@ -486,13 +486,17 @@
                                       {:name "results.xml"
                                        :url "http://example.com/something/files/Build/42/DoStuff/1/AlphaJob/tmp/results.xml"}]})
                 (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/results.xml"
-                        "<testsuites></testsuites>"))
-      (is (= '("<testsuites></testsuites>")
+                        "<testsuite name=\"my-suite\"><testcase classname=\"my-class\" name=\"my-name\" time=\"0.042\"/></testsuite>"))
+      (is (= '({:name "my-suite"
+                :children ({:classname "my-class"
+                            :name "my-name"
+                            :runtime 42
+                            :status "pass"})})
              (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
                                    :pipeline-groups nil}
                                   beginning-of-2016)
                  first
-                 :junit-xml)))))
+                 :test-results)))))
 
   (testing "should sync multiple test results in one job"
     (fake/with-fake-routes-in-isolation
@@ -513,12 +517,15 @@
                         "<testsuite name=\"one\"></testsuite>")
                 (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "others.xml"
                         "<testsuites><testsuite name=\"other\"></testsuite></testsuites>"))
-      (is (= '("<testsuite name=\"one\"></testsuite>" "<testsuites><testsuite name=\"other\"></testsuite></testsuites>")
+      (is (= '({:name "one"
+                :children []}
+               {:name "other"
+                :children []})
              (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
                                    :pipeline-groups nil}
                                   beginning-of-2016)
                  first
-                 :junit-xml)))))
+                 :test-results)))))
 
   (testing "should combine test results for two jobs"
     (fake/with-fake-routes-in-isolation
@@ -542,12 +549,15 @@
                         "<testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>")
                 (a-file "Build" 42 "DoStuff" "1" "BetaJob" "tmp/results.xml"
                         "<testsuites><testsuite name=\"Beta\"></testsuite></testsuites>"))
-      (is (= '("<testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>" "<testsuites><testsuite name=\"Beta\"></testsuite></testsuites>")
+      (is (= '({:name "Alpha"
+                :children []}
+               {:name "Beta"
+                :children []})
              (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
                                    :pipeline-groups nil}
                                   beginning-of-2016)
                  first
-                 :junit-xml)))))
+                 :test-results)))))
 
   (testing "should store test results even if one job has no XML"
     (fake/with-fake-routes-in-isolation
@@ -567,14 +577,15 @@
                 (a-file-list "Build" 42 "DoStuff" "1" "BetaJob")
                 (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/results.xml"
                         "<testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>"))
-      (is (= '("<testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>")
+      (is (= '({:name "Alpha"
+                :children []})
              (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
                                    :pipeline-groups nil}
                                   beginning-of-2016)
                  first
-                 :junit-xml)))))
+                 :test-results)))))
 
-  (testing "should not include not JUnit XML file"
+  (testing "should not include non-JUnit-XML file"
     (fake/with-fake-routes-in-isolation
       (serve-up (a-config (a-pipeline-group "Development"
                                             (a-pipeline "Build"
@@ -592,10 +603,36 @@
                 (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/nontest.xml"
                         "<?xml version=\"1.0\" encoding=\"UTF-8\"?><someNode><contentNode></contentNode></someNode>")
                 (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/results.xml"
-                        "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <!-- comments are fine -->  <testsuites></testsuites>"))
-      (is (= '("<?xml version=\"1.0\" encoding=\"UTF-8\"?> <!-- comments are fine -->  <testsuites></testsuites>")
+                        "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <!-- comments are fine -->  <testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>"))
+      (is (= '({:name "Alpha"
+                :children []})
              (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
                                    :pipeline-groups nil}
                                   beginning-of-2016)
                  first
-                 :junit-xml))))))
+                 :test-results)))))
+
+  (testing "should not error on invalid JUnit XML"
+    (fake/with-fake-routes-in-isolation
+      (serve-up (a-config (a-pipeline-group "Development"
+                                            (a-pipeline "Build"
+                                                        (a-stage "DoStuff"))))
+                (a-short-history "Build" "DoStuff"
+                                 (a-stage-run 42 "1" "Passed"
+                                              (a-job-run "AlphaJob" 1493201298062 321)))
+                (a-pipeline-run "Build" 42 [(a-stage-run "DoStuff" "1")])
+                (a-builds-properties 321 {})
+                (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"
+                             {:files [{:name "results.xml"
+                                       :url "http://example.com/something/files/Build/42/DoStuff/1/AlphaJob/tmp/results.xml"}
+                                      {:name "problematic-results.xml"
+                                       :url "http://example.com/something/files/Build/42/DoStuff/1/AlphaJob/tmp/problematic-results.xml"}]})
+                (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/results.xml"
+                        "<testsuite name=\"valid-suite\"/>")
+                (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/problematic-results.xml"
+                        "<testsuite name=\"invalid-suite\"><testcase "))
+      (is (nil? (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
+                                      :pipeline-groups nil}
+                                     beginning-of-2016)
+                    first
+                    :test-results))))))

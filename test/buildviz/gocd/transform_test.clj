@@ -69,6 +69,14 @@
 
   (testing "xml"
     (testing "should merge JUnit XML lists"
-      (is (= ["testsuite 1" "second suite" "another testsuite"]
-             (:junit-xml (transform/stage-instances->builds (a-stage-instance [(a-job-instance-with-xml ["testsuite 1" "second suite"] "1")
-                                                                               (a-job-instance-with-xml ["another testsuite"] "1")] "1"))))))))
+      (is (= '({:name "testsuite 1" :children []}
+               {:name "second suite" :children []}
+               {:name "another testsuite" :children []})
+             (:test-results (transform/stage-instances->builds (a-stage-instance [(a-job-instance-with-xml
+                                                                                   ["<testsuite name=\"testsuite 1\"></testsuite>"
+                                                                                    "<testsuite name=\"second suite\"></testsuite>"]
+                                                                                   "1")
+                                                                                  (a-job-instance-with-xml
+                                                                                   ["<testsuite name=\"another testsuite\"></testsuite>"]
+                                                                                   "1")]
+                                                                                 "1"))))))))

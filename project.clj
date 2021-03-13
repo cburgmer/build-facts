@@ -19,8 +19,6 @@
                  [uritemplate-clj "1.3.0"]
                  [wharf "0.2.0-20141115.032457-2"]]
   :main buildviz.main
-  :aot [buildviz.main
-        buildviz.data.junit-xml]
   :profiles {:dev {:dependencies [[clj-http-fake "1.0.3"]]
                    :plugins [[lein-ancient "1.0.0-RC3"]]}
              :test {:resource-paths ["test/resources"]}}
