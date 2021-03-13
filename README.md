@@ -30,7 +30,11 @@ Let's hope we don't lose too much information on the way.
   - TeamCity
   - Concourse
 
-## Build JSON schema
+## JSON schema
+
+[JSON Schema document](./schema.json).
+
+Example:
 
     {
       "jobName": "Deploy",
