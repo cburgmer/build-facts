@@ -1,9 +1,6 @@
 (ns buildviz.data.junit-xml
-  (:gen-class)
   (:require [clojure.data.xml :as xml]
-            [clojure.string :as str]
-            [clojure.java.io :as io])
-  (:import [java.util Locale]))
+            [clojure.string :as str]))
 
 ;; Parsing is following schema documented in http://llg.cubic.org/docs/junit/
 
