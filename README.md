@@ -20,7 +20,7 @@ Let's hope we don't lose too much information on the way.
 
 ## Features
 
-- Streams standardized build data
+- Streams standardized build data (specified via JSON Schema)
 - Splunk HEC format
 - Resume from previous sync
 - Output build data to files
@@ -32,7 +32,7 @@ Let's hope we don't lose too much information on the way.
 
 ## JSON schema
 
-[JSON Schema document](./schema.json).
+[JSON Schema document](./schema.json)
 
 Example:
 
@@ -75,16 +75,6 @@ Now start the sync pointing to this instance
     {"jobName":"Test","buildId":"2","start":1615151342348,"end":1615151344854,"outcome":"pass","inputs":[{"revision":"9bb731de4f4372a8c3b4e53e7d70cd729b32419c","sourceId":"https://github.com/cburgmer/buildviz.git"}]}
     {"jobName":"Deploy","buildId":"1","start":1615151349657,"end":1615151361672,"outcome":"pass","inputs":[{"revision":"9bb731de4f4372a8c3b4e53e7d70cd729b32419c","sourceId":"TEST_GIT_COMMIT"}],"triggeredBy":[{"jobName":"Test","buildId":"1"},{"jobName":"Test","buildId":"2"}]}
     [...]
-
-If you happen to receive JUnit XML test results, you can inspect them via
-
-    $ ./lein run -m buildviz.data.junit-xml data/Example\ %3a%3a\ test/4.xml
-    Another Test Suite
-      Nested Test Suite
-        some.class.A Test	0.002	:fail
-        some.class.Some Test	0.005	:error
-        some.class.Another Test	0.003	:pass
-        some.class.Skipped Test	0.004	:skipped
 
 ## To do
 
