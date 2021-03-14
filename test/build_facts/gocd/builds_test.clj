@@ -157,7 +157,7 @@
                 :start 1483264800000
                 :end 1483272000000
                 :outcome "pass"
-                :inputs [{:revision "AnotherPipeline/21", :sourceId 7}]})
+                :inputs [{:revision "AnotherPipeline/21", :sourceId "7"}]})
              (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
                                :pipeline-groups nil}
                               beginning-of-2016)))))

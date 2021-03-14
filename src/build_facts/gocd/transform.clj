@@ -54,7 +54,7 @@
 
 (defn- revision->input [{:keys [modifications material]}]
   {:revision (:revision (first modifications))
-   :sourceId (:id material)})
+   :sourceId (str (:id material))})
 
 (defn- inputs-for-stage-instance [pipeline-instance]
   (let [revisions (:material_revisions (:build_cause pipeline-instance))]
