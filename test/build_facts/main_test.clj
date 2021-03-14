@@ -252,7 +252,7 @@
                          (with-no-err
                            (sut/-main "concourse" "mock-target" "--from" "2016-01-01" "--splunk")))]
             (is (= {:time 1451642401
-                    :source "build-data"
+                    :source "build-facts"
                     :event {:jobName "my-pipeline my-job"
                             :buildId "42"
                             :outcome "pass"

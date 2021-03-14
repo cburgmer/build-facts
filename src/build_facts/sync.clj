@@ -18,7 +18,7 @@
 (defn- build->splunk-format [build] ;; https://docs.splunk.com/Documentation/Splunk/8.1.2/Data/FormateventsforHTTPEventCollector
   {:time (int (/ (:end build)
                  1000))
-   :source "build-data"
+   :source "build-facts"
    :event build})
 
 (defn- output! [output splunkFormat? {:keys [job-name build-id] :as build}]

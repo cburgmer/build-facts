@@ -19,7 +19,7 @@
                 "CONCOURSE_TARGET       The target of the Concourse installation as provided to"
                 "                       fly. To view your existing targets run 'fly targets', to"
                 "                       login e.g."
-                "                       'fly login --target build-data -c http://localhost:8080'."
+                "                       'fly login --target build-facts -c http://localhost:8080'."
                 "                       fly can be downloaded from the Concourse main page."]))
 
 (defn- parse-options [c-args]

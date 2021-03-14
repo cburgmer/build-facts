@@ -11,7 +11,7 @@ readonly WIREMOCK_PORT="3340"
 readonly WIREMOCK_BASE_URL="http://localhost:${WIREMOCK_PORT}"
 readonly CONCOURSE_BASE_URL="http://localhost:8080"
 readonly SYNC_URL="$WIREMOCK_BASE_URL"
-readonly CONCOURSE_TARGET=build-data-record
+readonly CONCOURSE_TARGET=build-facts-record
 
 readonly MAPPING_TMP_DIR="/tmp/record.wiremock.$$"
 

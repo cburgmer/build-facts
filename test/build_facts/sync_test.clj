@@ -22,7 +22,7 @@
   (testing "sends the unix epoch in seconds as event timestamp for Splunk"
     (let [tmp-dir (create-tmp-dir "tmp")]
       (is (= {:time 123456
-              :source "build-data"
+              :source "build-facts"
               :event {:jobName "fake-job"
                       :end 123456789}}
              (j/parse-string (with-out-str
