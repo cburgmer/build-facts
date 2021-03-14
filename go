@@ -48,6 +48,7 @@ goal_make_release() {
         OLD_VERSION_ESCAPED=$(git tag --sort=-version:refname | head -1 | sed 's/\./\\./')
 
         sed -i "" "s/$OLD_VERSION_ESCAPED/$NEW_VERSION/g" README.md
+        sed -i "" "s/$OLD_VERSION_ESCAPED/$NEW_VERSION/g" examples/README.md
         sed -i "" "s/build-facts \"$OLD_VERSION_ESCAPED\"/build-facts \"$NEW_VERSION\"/" project.clj
 
         git add README.md project.clj
