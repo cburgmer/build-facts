@@ -10,7 +10,7 @@ come with a minimal pipeline pre-configured.
 - Jenkins
 - TeamCity
 
-In addition there is a [Splunk](./splunk) setup which can be used as a target
+In addition there is a Splunk setup which can be used as a target
 for synced build events.
 
 ### How to
@@ -47,6 +47,6 @@ Sync data from the build server into Splunk
 
     while read event; do
       curl -d "$event" -k -H "Authorization: Splunk 1234567890qwertyuiop" 'https://localhost:8088/services/collector'
-    done <<< "$(../lein run -m build-facts.main jenkins http://localhost:8080 --splunk)"
+    done <<< "$(java -jar build-facts-0.2.0-standalone.jar jenkins http://localhost:8080 --splunk)"
 
 An example [dashboard exists](./splunk/dashboard.xml) and can be copied in via the "Source" edit mode.
