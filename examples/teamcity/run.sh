@@ -126,6 +126,7 @@ goal_start() {
     else
         start_server "/login.html"
     fi
+    echo "Started at ${BASE_URL}, use credentials ${USER}:${PASSWORD}"
 }
 
 goal_stop() {

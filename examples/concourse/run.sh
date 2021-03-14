@@ -5,6 +5,8 @@ readonly SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 readonly TMP_LOG="/tmp/run.$$.log"
 readonly BASE_URL="http://localhost:8080"
+readonly USER="user"
+readonly PASSWORD="password"
 
 wait_for_server() {
     local url=$1
@@ -79,7 +81,7 @@ provision_pipeline() {
         curl -vL "${BASE_URL}/api/v1/cli?arch=amd64&platform=${os_name}" -o "$fly_bin"
         chmod a+x "$fly_bin"
 
-        "$fly_bin" -t build-facts login -c "$BASE_URL" -u user -p password
+        "$fly_bin" -t build-facts login -c "$BASE_URL" -u "$USER" -p "$PASSWORD"
 
         "$fly_bin" -t build-facts set-pipeline -p anotherpipeline -c anotherpipeline.yml -n
         "$fly_bin" -t build-facts unpause-pipeline -p anotherpipeline
@@ -113,6 +115,7 @@ goal_start() {
     else
         start_server
     fi
+    echo "Started at ${BASE_URL}, use credentials ${USER}:${PASSWORD}"
 }
 
 goal_stop() {

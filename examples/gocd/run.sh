@@ -95,6 +95,7 @@ goal_start() {
     else
         start_server
     fi
+    echo "Started at ${BASE_URL}"
 }
 
 
@@ -107,6 +108,7 @@ goal_stop() {
 goal_destroy() {
     announce "Destroying docker container"
     docker_compose down &>> "$TMP_LOG"
+    rm -rf "${SCRIPT_DIR}/server/config/" &>> "$TMP_LOG"
     echo " done"
 }
 

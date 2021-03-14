@@ -21,7 +21,8 @@ Bring up a server (adapt with the desired build server)
 
 Sync data
 
-    $ ../lein run -m build-facts.main jenkins http://localhost:8080
+    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.2.0/build-facts-0.2.0-standalone.jar
+    $ java -jar build-facts-0.2.0-standalone.jar jenkins http://localhost:8080
 
 Stop a server
 

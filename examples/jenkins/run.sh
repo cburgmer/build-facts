@@ -152,6 +152,7 @@ goal_start() {
     else
         start_server
     fi
+    echo "Started at ${BASE_URL}"
 }
 
 goal_stop() {
