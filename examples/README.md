@@ -5,17 +5,17 @@
 These demos show integration with popular CI servers. Installed via Docker, they
 come with a minimal pipeline pre-configured.
 
-- [Concourse](./concourse)
-- [GoCD](./gocd)
-- [Jenkins](./jenkins)
-- [TeamCity](./teamcity)
+- Concourse
+- GoCD
+- Jenkins
+- TeamCity
 
-In addition there is a [Spunk](./splunk) setup which can be used as a target for
-synced build events.
+In addition there is a [Splunk](./splunk) setup which can be used as a target
+for synced build events.
 
 ### How to
 
-Bring up a server
+Bring up a server (adapt with the desired build server)
 
     $ ./jenkins/run.sh start
 
