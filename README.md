@@ -1,9 +1,3 @@
-## Status
-
-This yet unnamed child is a fork of [buildviz](https://github.com/cburgmer/buildviz).
-It only retains the logic necessary to read build data from different build
-servers.
-
 ## Goal
 
 Download build facts from different CI/CD servers in a standard JSON schema.
@@ -69,7 +63,7 @@ Have a build server running, e.g. an example Jenkins shipped with this repo:
 
 Now start the sync pointing to this instance
 
-    $ ./lein run -m buildviz.main jenkins http://localhost:8080
+    $ ./lein run -m build-facts.main jenkins http://localhost:8080
     Finding all builds for syncing from http://localhost:8080 (starting from 2021-01-06T23:00:00.000Z)...
     {"jobName":"Test","buildId":"1","start":1615151319678,"end":1615151342243,"outcome":"pass","inputs":[{"revision":"9bb731de4f4372a8c3b4e53e7d70cd729b32419c","sourceId":"https://github.com/cburgmer/buildviz.git"}]}
     {"jobName":"Test","buildId":"2","start":1615151342348,"end":1615151344854,"outcome":"pass","inputs":[{"revision":"9bb731de4f4372a8c3b4e53e7d70cd729b32419c","sourceId":"https://github.com/cburgmer/buildviz.git"}]}
@@ -80,7 +74,6 @@ Now start the sync pointing to this instance
 
 This fork needs cleaning up:
 
-- Remove code reference to buildviz to avoid confusion
 - ./go make_release is broken
 - Move over https://github.com/cburgmer/buildviz/wiki/CI-tool-integration
 - Don't sync past the earliest running build

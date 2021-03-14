@@ -50,7 +50,7 @@ stop_wiremock() {
 }
 
 sync_builds() {
-    "${SCRIPT_DIR}/../../lein" run -m buildviz.main gocd "$SYNC_URL" --from 2000-01-01
+    "${SCRIPT_DIR}/../../lein" run -m build-facts.main gocd "$SYNC_URL" --from 2000-01-01
 }
 
 clean_up() {

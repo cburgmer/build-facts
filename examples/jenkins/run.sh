@@ -33,7 +33,7 @@ hint_at_logs() {
 }
 
 container_exists() {
-    if [[ -z $(docker container ls -q -a --filter name=buildviz_jenkins_example) ]]; then
+    if [[ -z $(docker container ls -q -a --filter name=build_facts_jenkins_example) ]]; then
         return 1
     else
         return 0
@@ -41,13 +41,13 @@ container_exists() {
 }
 
 provision_container() {
-    docker container create -p 8080:8080 --name buildviz_jenkins_example jenkins/jenkins:2.263.4-lts-alpine
+    docker container create -p 8080:8080 --name build_facts_jenkins_example jenkins/jenkins:2.263.4-lts-alpine
 }
 
 start_server() {
     local check_path="${1:-/}"
     announce "Starting docker image"
-    docker container start buildviz_jenkins_example &>> "$TMP_LOG"
+    docker container start build_facts_jenkins_example &>> "$TMP_LOG"
 
     wait_for_server "${BASE_URL}${check_path}"
     echo " done"
@@ -55,15 +55,15 @@ start_server() {
 
 provision_jenkins() {
     announce "Installing plugins"
-    docker container exec buildviz_jenkins_example /usr/local/bin/install-plugins.sh git promoted-builds git-client parameterized-trigger build-pipeline-plugin dashboard-view &>> "$TMP_LOG"
+    docker container exec build_facts_jenkins_example /usr/local/bin/install-plugins.sh git promoted-builds git-client parameterized-trigger build-pipeline-plugin dashboard-view &>> "$TMP_LOG"
     echo " done"
 
     announce "Disabling Jenkins security"
     sleep 10
     # shellcheck disable=SC2129
-    docker container exec buildviz_jenkins_example rm /var/jenkins_home/config.xml &>> "$TMP_LOG"
-    docker container exec buildviz_jenkins_example cp -p /var/jenkins_home/jenkins.install.UpgradeWizard.state /var/jenkins_home/jenkins.install.InstallUtil.lastExecVersion &>> "$TMP_LOG"
-    docker container restart buildviz_jenkins_example &>> "$TMP_LOG"
+    docker container exec build_facts_jenkins_example rm /var/jenkins_home/config.xml &>> "$TMP_LOG"
+    docker container exec build_facts_jenkins_example cp -p /var/jenkins_home/jenkins.install.UpgradeWizard.state /var/jenkins_home/jenkins.install.InstallUtil.lastExecVersion &>> "$TMP_LOG"
+    docker container restart build_facts_jenkins_example &>> "$TMP_LOG"
     wait_for_server "$BASE_URL"
     echo " done"
 }
@@ -156,14 +156,14 @@ goal_start() {
 
 goal_stop() {
     announce "Stopping docker image"
-    docker container stop buildviz_jenkins_example &>> "$TMP_LOG"
+    docker container stop build_facts_jenkins_example &>> "$TMP_LOG"
     echo " done"
 }
 
 goal_destroy() {
     announce "Destroying docker container"
-    docker container stop buildviz_jenkins_example &>> "$TMP_LOG"
-    docker container rm buildviz_jenkins_example &>> "$TMP_LOG"
+    docker container stop build_facts_jenkins_example &>> "$TMP_LOG"
+    docker container rm build_facts_jenkins_example &>> "$TMP_LOG"
     echo " done"
 }
 

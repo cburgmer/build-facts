@@ -60,7 +60,7 @@ start_server() {
 }
 
 has_started_builds() {
-    "$fly_bin" -t buildviz builds | grep started > /dev/null
+    "$fly_bin" -t build-facts builds | grep started > /dev/null
 }
 
 wait_for_pipeline_to_be_schedulable() {
@@ -79,23 +79,23 @@ provision_pipeline() {
         curl -vL "${BASE_URL}/api/v1/cli?arch=amd64&platform=${os_name}" -o "$fly_bin"
         chmod a+x "$fly_bin"
 
-        "$fly_bin" -t buildviz login -c "$BASE_URL" -u user -p password
+        "$fly_bin" -t build-facts login -c "$BASE_URL" -u user -p password
 
-        "$fly_bin" -t buildviz set-pipeline -p anotherpipeline -c anotherpipeline.yml -n
-        "$fly_bin" -t buildviz unpause-pipeline -p anotherpipeline
-        "$fly_bin" -t buildviz unpause-job -j anotherpipeline/hello-world
-        "$fly_bin" -t buildviz trigger-job -j anotherpipeline/hello-world
+        "$fly_bin" -t build-facts set-pipeline -p anotherpipeline -c anotherpipeline.yml -n
+        "$fly_bin" -t build-facts unpause-pipeline -p anotherpipeline
+        "$fly_bin" -t build-facts unpause-job -j anotherpipeline/hello-world
+        "$fly_bin" -t build-facts trigger-job -j anotherpipeline/hello-world
 
-        "$fly_bin" -t buildviz set-pipeline -p pipeline -c pipeline.yml -n
-        "$fly_bin" -t buildviz unpause-pipeline -p pipeline
-        "$fly_bin" -t buildviz unpause-job -j pipeline/build
-        "$fly_bin" -t buildviz unpause-job -j pipeline/deploy
-        "$fly_bin" -t buildviz unpause-job -j pipeline/smoketest
+        "$fly_bin" -t build-facts set-pipeline -p pipeline -c pipeline.yml -n
+        "$fly_bin" -t build-facts unpause-pipeline -p pipeline
+        "$fly_bin" -t build-facts unpause-job -j pipeline/build
+        "$fly_bin" -t build-facts unpause-job -j pipeline/deploy
+        "$fly_bin" -t build-facts unpause-job -j pipeline/smoketest
     } &>> "$TMP_LOG"
 
     for run in 1 2 3 4 5; do
         announce "Triggering build run ${run}"
-        "$fly_bin" -t buildviz trigger-job -j pipeline/build &>> "$TMP_LOG"
+        "$fly_bin" -t build-facts trigger-job -j pipeline/build &>> "$TMP_LOG"
         wait_for_pipeline_to_be_schedulable
         echo
     done

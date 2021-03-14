@@ -4,10 +4,10 @@ jdk:
 script:
 - ./go
 before_deploy:
-- lein ring uberjar
+- ./lein uberjar
 deploy:
   provider: releases
-  file: target/buildviz-*-standalone.jar
+  file: target/build-facts-*-standalone.jar
   file_glob: true
   skip_cleanup: true
   on:

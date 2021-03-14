@@ -27,11 +27,11 @@ stop_wiremock() {
 }
 
 sync_builds() {
-    JENKINS_USER="my_user" JENKINS_PASSWORD="my_password" "${SCRIPT_DIR}/../../lein" run -m buildviz.main jenkins "$SYNC_URL" --from 2000-01-01
+    JENKINS_USER="my_user" JENKINS_PASSWORD="my_password" "${SCRIPT_DIR}/../../lein" run -m build-facts.main jenkins "$SYNC_URL" --from 2000-01-01
 }
 
 ensure_user_agent() {
-    local count_request='{"method": "GET", "url": "/api/json", "headers": {"User-Agent": {"matches": "buildviz.*"}}}'
+    local count_request='{"method": "GET", "url": "/api/json", "headers": {"User-Agent": {"matches": "build-facts.*"}}}'
     local count_response
     count_response=$(echo "$count_request" | curl -s -X POST -d@- "${WIREMOCK_BASE_URL}/__admin/requests/count")
     if ! grep '"count" : 1' <<<"$count_response" > /dev/null; then

@@ -27,11 +27,11 @@ stop_wiremock() {
 }
 
 sync_builds() {
-    GOCD_USER="my_user" GOCD_PASSWORD="my_password" "${SCRIPT_DIR}/../../lein" run -m buildviz.main gocd "$SYNC_URL" --from 2000-01-01 -g defaultGroup
+    GOCD_USER="my_user" GOCD_PASSWORD="my_password" "${SCRIPT_DIR}/../../lein" run -m build-facts.main gocd "$SYNC_URL" --from 2000-01-01 -g defaultGroup
 }
 
 ensure_user_agent() {
-    local count_request='{"method": "GET", "url": "/go/api/config/pipeline_groups", "headers": {"User-Agent": {"matches": "buildviz.*"}}}'
+    local count_request='{"method": "GET", "url": "/go/api/config/pipeline_groups", "headers": {"User-Agent": {"matches": "build-facts.*"}}}'
     local count_response
     count_response=$(echo "$count_request" | curl -s -X POST -d@- "${WIREMOCK_BASE_URL}/__admin/requests/count")
     if ! grep '"count" : 1' <<<"$count_response" > /dev/null; then

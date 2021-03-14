@@ -1,6 +1,6 @@
-(defproject buildviz "0.14.1"
-  :description "Transparency for your build pipeline's results and runtime."
-  :url "https://github.com/cburgmer/buildviz"
+(defproject build-facts "0.14.1"
+  :description "Dump your build pipeline's data for inspection"
+  :url "https://github.com/cburgmer/build-facts"
   :license {:name "BSD 2-Clause"
             :url "http://opensource.org/licenses/BSD-2-Clause"}
   :dependencies [[org.clojure/clojure "1.10.2"]
@@ -18,7 +18,7 @@
                  [intervox/clj-progress "0.2.1"]
                  [uritemplate-clj "1.3.0"]
                  [wharf "0.2.0-20141115.032457-2"]]
-  :main buildviz.main
+  :main build-facts.main
   :profiles {:dev {:dependencies [[clj-http-fake "1.0.3"]]
                    :plugins [[lein-ancient "1.0.0-RC3"]]}
              :test {:resource-paths ["test/resources"]}}

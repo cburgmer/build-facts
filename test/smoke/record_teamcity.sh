@@ -40,7 +40,7 @@ stop_wiremock() {
 }
 
 sync_builds() {
-    "${SCRIPT_DIR}/../../lein" run -m buildviz.main teamcity "$SYNC_URL" --from 2000-01-01 -p SimpleSetup
+    "${SCRIPT_DIR}/../../lein" run -m build-facts.main teamcity "$SYNC_URL" --from 2000-01-01 -p SimpleSetup
 }
 
 start_recording() {
