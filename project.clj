@@ -1,4 +1,4 @@
-(defproject build-facts "0.14.1"
+(defproject build-facts "0.1.0"
   :description "Dump your build pipeline's data for inspection"
   :url "https://github.com/cburgmer/build-facts"
   :license {:name "BSD 2-Clause"

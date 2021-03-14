@@ -35,7 +35,7 @@ goal_test() {
 
 goal_make_release() {
     local NEW_VERSION=$1
-    local OLD_VERSION
+    local OLD_VERSION_ESCAPED
 
     if [ -z "$NEW_VERSION" ]; then
         echo "Provide a new version number"
@@ -45,22 +45,18 @@ goal_make_release() {
     (
         cd "$SCRIPT_DIR"
 
-        OLD_VERSION=$(git tag --sort=-version:refname | head -1)
+        OLD_VERSION_ESCAPED=$(git tag --sort=-version:refname | head -1 | sed 's/\./\\./')
 
-        sed -i "" "s/$OLD_VERSION/$NEW_VERSION/g" README.md
-        sed -i "" "s/buildviz \"$OLD_VERSION\"/buildviz \"$NEW_VERSION\"/" project.clj
+        sed -i "" "s/$OLD_VERSION_ESCAPED/$NEW_VERSION/g" README.md
+        sed -i "" "s/build-facts \"$OLD_VERSION_ESCAPED\"/build-facts \"$NEW_VERSION\"/" project.clj
 
-        # shellcheck disable=SC1010
-        ./lein do deps # force package-lock.json to be updated now
-
-        git add README.md project.clj resources/public/package-lock.json
+        git add README.md project.clj
         git commit -m "Bump version"
         git show
         git tag "$NEW_VERSION"
         echo
         echo "You now want to"
         echo "$ git push origin master --tags"
-        echo "$ ./go publish_docker ${NEW_VERSION} # once travis has built the jar"
     )
 }
 
