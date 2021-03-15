@@ -23,7 +23,7 @@
     "end": {
       "type": "integer",
       "minimum": 0,
-      "description": "End timestamp of the build (Unix epoch in milliseconds)",
+      "description": "End timestamp of the build (Unix epoch in milliseconds). If the duration of a build cannot be deduced the build's end can be omitted.",
       "examples": [1451449870555]
     },
     "outcome": {
@@ -33,7 +33,7 @@
     },
     "inputs": {
       "type": "array",
-      "description": "Inputs with which the build was executed",
+      "description": "Inputs with which the build was executed. The assumption is that given the same inputs, two builds should yield the same outputs.",
       "examples": [
         [
           {
@@ -60,7 +60,7 @@
     },
     "triggeredBy": {
       "type": "array",
-      "description": "References to other builds that triggered the execution of this build",
+      "description": "References to other builds that triggered the execution of this build. This is intended to capture automatic triggers of downstream builds to calculate overall runtime, and should exclude instances where human intervention was required, which adds delay.",
       "examples": [
         [
           {
