@@ -25,11 +25,16 @@ the current set of build properties.
 - Splunk HEC format
 - Resume from previous sync
 - Output build data to files
-- Supports the following build servers:
-  - Jenkins
-  - Go.cd
-  - TeamCity
-  - Concourse
+
+### Supported build servers
+
+| Build server | Start, end and outcome | Inputs | Triggered by | Test results |
+| ------------ | ---------------------- | ------ | ------------ | ------------ |
+| Concourse    | ✓                      |        |              |              |
+| GoCD         | ✓                      | ✓      | ✓            | ✓            |
+| Jenkins      | ✓                      | ✓      | ✓            | ✓            |
+| TeamCity     | ✓                      | ✓      | ✓            | ✓            |
+
 
 ## JSON schema
 
@@ -70,4 +75,3 @@ This project ships with examples for every supported build server: [./examples](
 
 - Move over https://github.com/cburgmer/buildviz/wiki/CI-tool-integration
 - Don't sync past the earliest running build
-- Document what's supported per build server
