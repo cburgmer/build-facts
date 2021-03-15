@@ -22,9 +22,6 @@
 (defn- sync-oldest-first-to-deal-with-cancellation [builds]
   (sort-by #(get-in % [:build :finishDate]) builds))
 
-(defn- ignore-ongoing-builds [builds]
-  (filter :result builds))
-
 (defn- stop-at-first-non-finished-so-we-can-resume-later [builds]
   (take-while #(= "finished" (get-in % [:build :state])) builds))
 
