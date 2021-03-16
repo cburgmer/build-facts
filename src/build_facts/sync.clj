@@ -95,7 +95,8 @@
   (->> builds
        (take-while #(build-recent? % sync-start-time))
        reverse
-       (take-while :start)
+       (take-while (fn [{outcome :outcome}] (or (= outcome "pass")
+                                                (= outcome "fail"))))
        (map #(do (println (json/to-string %))
                  %))
        last))
