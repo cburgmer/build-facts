@@ -173,4 +173,48 @@
                                                    :start (unix-time 2016 1 2 9 0 0)}]]))))
       (is (= {"jobs" {"fake-job" {"lastStart" 1451642400000}
                       "another-job" {"lastStart" 1451725200000}}}
-             (j/parse-string (slurp state-file)))))))
+             (j/parse-string (slurp state-file))))))
+
+  (testing "resumes sync from last state saved in state file"
+    (let [state-file (format "%s/state.json" (create-tmp-dir "tmp"))]
+      (spit state-file (j/generate-string {"jobs" {"fake-job" {"lastStart" 1451642400000}
+                                                   "another-job" {"lastStart" 1451725200000}}}))
+      (is (= '({:jobName "fake-job"
+                :buildId "22"
+                :outcome "pass"
+                :start 1451728800000}
+               {:jobName "fake-job"
+                :buildId "23"
+                :outcome "pass"
+                :start 1451815200000}
+               {:jobName "another-job"
+                :buildId "43"
+                :outcome "fail"
+                :start 1451732400000})
+             (->> (with-out-str
+                    (with-no-err
+                      (sut/sync-builds-v2 {:base-url 'some-url
+                                           :user-sync-start-time beginning-of-2016
+                                           :state-file-path state-file}
+                                          (fn [_] [[{:job-name "fake-job"
+                                                     :build-id "23"
+                                                     :outcome "pass"
+                                                     :start (unix-time 2016 1 3 10 0 0)}
+                                                    {:job-name "fake-job"
+                                                     :build-id "22"
+                                                     :outcome "pass"
+                                                     :start (unix-time 2016 1 2 10 0 0)}
+                                                    {:job-name "fake-job"
+                                                     :build-id "21"
+                                                     :outcome "pass"
+                                                     :start (unix-time 2016 1 1 10 0 0)}]
+                                                   [{:job-name "another-job"
+                                                     :build-id "43"
+                                                     :outcome "fail"
+                                                     :start (unix-time 2016 1 2 11 0 0)}
+                                                    {:job-name "another-job"
+                                                     :build-id "42"
+                                                     :outcome "pass"
+                                                     :start (unix-time 2016 1 2 9 0 0)}]]))))
+                  clojure.string/split-lines
+                  (map #(j/parse-string % true))))))))

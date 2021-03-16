@@ -59,7 +59,7 @@
     (spit state-file-path
           (json/to-string {:last-build-start (:start last-build)}))))
 
-(defn- read-state [state-file-path]
+(defn- read-state-legacy [state-file-path]
   (when state-file-path
     (let [state-file (io/file state-file-path)]
       (when (.exists state-file)
@@ -71,7 +71,7 @@
                            splunkFormat?
                            state-file-path]}
                    fetch-builds]
-  (let [state-last-sync-time (when-let [unix-time (:last-build-start (read-state state-file-path))]
+  (let [state-last-sync-time (when-let [unix-time (:last-build-start (read-state-legacy state-file-path))]
                                (tc/from-long unix-time))
         sync-start-time (or state-last-sync-time
                             user-sync-start-time
@@ -91,15 +91,26 @@
   (or (nil? start)
       (t/after? (tc/from-long start) sync-start-time)))
 
-(defn- builds-for-job [builds sync-start-time]
-  (->> builds
-       (take-while #(build-recent? % sync-start-time))
-       reverse
-       (take-while (fn [{outcome :outcome}] (or (= outcome "pass")
-                                                (= outcome "fail"))))
-       (map #(do (println (json/to-string %))
-                 %))
-       last))
+(defn- builds-for-job [builds user-sync-start-time state]
+  (let [job-name (:job-name (first builds))
+        last-sync-time (get-in state ["jobs" job-name "lastStart"])
+        sync-start-time (or (when last-sync-time
+                              (tc/from-long last-sync-time))
+                            user-sync-start-time)]
+    (->> builds
+         (take-while #(build-recent? % sync-start-time))
+         reverse
+         (take-while (fn [{outcome :outcome}] (or (= outcome "pass")
+                                                  (= outcome "fail"))))
+         (map #(do (println (json/to-string %))
+                   %))
+         last)))
+
+(defn- read-state [state-file-path]
+  (when state-file-path
+    (let [state-file (io/file state-file-path)]
+      (when (.exists state-file)
+        (j/parse-string (slurp state-file-path))))))
 
 (defn- write-state [state-file-path last-builds]
   (when state-file-path
@@ -115,7 +126,8 @@
                               user-sync-start-time
                               state-file-path]}
                       fetch-builds]
-  (->> (fetch-builds base-url)
-       (map #(builds-for-job % user-sync-start-time))
-       doall
-       (write-state state-file-path)))
+  (let [state (read-state state-file-path)]
+    (->> (fetch-builds base-url)
+         (map #(builds-for-job % user-sync-start-time state))
+         doall
+         (write-state state-file-path))))
