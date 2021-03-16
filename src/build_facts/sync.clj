@@ -56,14 +56,14 @@
 
 (defn- write-state-legacy [state-file-path last-build]
   (when state-file-path
-    (spit (io/file state-file-path)
+    (spit state-file-path
           (json/to-string {:last-build-start (:start last-build)}))))
 
 (defn- read-state [state-file-path]
   (when state-file-path
     (let [state-file (io/file state-file-path)]
       (when (.exists state-file)
-        (json/from-string (slurp (io/file state-file-path)))))))
+        (json/from-string (slurp state-file-path))))))
 
 (defn sync-builds [{:keys [base-url
                            user-sync-start-time
@@ -108,7 +108,7 @@
          (into {})
          (assoc {} :jobs)
          j/generate-string
-         (spit (io/file state-file-path)))))
+         (spit state-file-path))))
 
 
 (defn sync-builds-v2 [{:keys [base-url
