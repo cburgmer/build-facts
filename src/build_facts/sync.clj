@@ -3,6 +3,7 @@
   (:require [build-facts.concourse.builds :as builds]
             [build-facts.storage :as storage]
             [build-facts.util.json :as json]
+            [cheshire.core :as j]
             [clj-progress.core :as progress]
             [clj-time
              [core :as t]
@@ -53,7 +54,7 @@
     (->> builds
          (map fn))))
 
-(defn- write-state [state-file-path last-build]
+(defn- write-state-legacy [state-file-path last-build]
   (when state-file-path
     (spit (io/file state-file-path)
           (json/to-string {:last-build-start (:start last-build)}))))
@@ -83,7 +84,7 @@
     (some->> (fetch-builds sync-start-time)
              (with-progress console? #(output! output splunkFormat? %))
              latest-build
-             (write-state state-file-path))))
+             (write-state-legacy state-file-path))))
 
 
 (defn- build-recent? [{start :start} sync-start-time]
@@ -94,12 +95,26 @@
   (->> builds
        (take-while #(build-recent? % sync-start-time))
        reverse
-       (take-while :start)))
+       (take-while :start)
+       (map #(do (println (json/to-string %))
+                 %))
+       last))
+
+(defn- write-state [state-file-path last-builds]
+  (when state-file-path
+    (->> last-builds
+         (map (fn [{:keys [job-name start]}] [job-name {:lastStart start}]))
+         (into {})
+         (assoc {} :jobs)
+         j/generate-string
+         (spit (io/file state-file-path)))))
+
 
 (defn sync-builds-v2 [{:keys [base-url
-                              user-sync-start-time]}
+                              user-sync-start-time
+                              state-file-path]}
                       fetch-builds]
   (->> (fetch-builds base-url)
-       (mapcat #(builds-for-job % user-sync-start-time))
-       (map #(println (json/to-string %)))
-       dorun))
+       (map #(builds-for-job % user-sync-start-time))
+       doall
+       (write-state state-file-path)))

@@ -137,4 +137,29 @@
                                                    :start (unix-time 2015 12 31 10 0 0)
                                                    :end (unix-time 2015 12 31 10 0 0)}]]))))
                 clojure.string/split-lines
-                (map #(j/parse-string % true)))))))
+                (map #(j/parse-string % true))))))
+
+  (testing "saves sync state of all jobs to state file"
+    (let [state-file (format "%s/state.json" (create-tmp-dir "tmp"))]
+      (with-out-str
+                  (with-no-err
+                    (sut/sync-builds-v2 {:base-url 'some-url
+                                         :user-sync-start-time beginning-of-2016
+                                         :state-file-path state-file}
+                                        (fn [_] [[{:job-name "fake-job"
+                                                   :build-id "23"
+                                                   :start (unix-time 2016 1 3 10 0 0)
+                                                   :end (unix-time 2016 1 3 10 0 0)}
+                                                  {:job-name "fake-job"
+                                                   :build-id "22"}
+                                                  {:job-name "fake-job"
+                                                   :build-id "21"
+                                                   :start (unix-time 2016 1 1 10 0 0)
+                                                   :end (unix-time 2016 1 1 10 0 0)}]
+                                                 [{:job-name "another-job"
+                                                   :build-id "42"
+                                                   :start (unix-time 2016 1 2 9 0 0)
+                                                   :end (unix-time 2016 1 2 9 10 0)}]]))))
+      (is (= {"jobs" {"fake-job" {"lastStart" 1451642400000}
+                      "another-job" {"lastStart" 1451725200000}}}
+             (j/parse-string (slurp state-file)))))))
