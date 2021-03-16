@@ -84,3 +84,22 @@
              (with-progress console? #(output! output splunkFormat? %))
              latest-build
              (write-state state-file-path))))
+
+
+(defn- build-recent? [{start :start} sync-start-time]
+  (or (nil? start)
+      (t/after? (tc/from-long start) sync-start-time)))
+
+(defn- builds-for-job [builds sync-start-time]
+  (->> builds
+       (take-while #(build-recent? % sync-start-time))
+       reverse
+       (take-while :start)))
+
+(defn sync-builds-v2 [{:keys [base-url
+                              user-sync-start-time]}
+                      fetch-builds]
+  (->> (fetch-builds base-url)
+       (mapcat #(builds-for-job % user-sync-start-time))
+       (map #(println (json/to-string %)))
+       dorun))
