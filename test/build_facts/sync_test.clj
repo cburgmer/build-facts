@@ -282,6 +282,31 @@
                       "another-job" {"lastStart" 1451732400000}}}
              (j/parse-string (slurp state-file))))))
 
+  (testing "should pick up new jobs not in state file (falling back to sync start time)"
+    (let [state-file (format "%s/state.json" (create-tmp-dir "tmp"))]
+      (spit state-file (j/generate-string {"jobs" {"fake-job" {"lastStart" 1580511600000}}}))
+      (is (= '({:jobName "new-job"
+                :buildId "43"
+                :outcome "fail"
+                :start 1451732400000})
+             (->> (with-out-str
+                    (with-no-err
+                      (sut/sync-builds-v2 {:base-url 'some-url
+                                           :user-sync-start-time beginning-of-2016
+                                           :state-file-path state-file}
+                                          (fn [_] [["fake-job"
+                                                    [{:job-name "fake-job"
+                                                      :build-id "21"
+                                                      :outcome "pass"
+                                                      :start (unix-time 2020 1 1 0 0 0)}]]
+                                                   ["new-job"
+                                                    [{:job-name "new-job"
+                                                      :build-id "43"
+                                                      :outcome "fail"
+                                                      :start (unix-time 2016 1 2 11 0 0)}]]]))))
+                  clojure.string/split-lines
+                  (map #(j/parse-string % true)))))))
+
   (testing "should optionally store results"
     (let [tmp-dir (create-tmp-dir "tmp")]
       (with-out-str
