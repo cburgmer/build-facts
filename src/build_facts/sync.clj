@@ -91,9 +91,8 @@
   (or (nil? start)
       (t/after? (tc/from-long start) sync-start-time)))
 
-(defn- builds-for-job [builds user-sync-start-time state]
-  (let [job-name (:job-name (first builds))
-        last-sync-time (get-in state ["jobs" job-name "lastStart"])
+(defn- builds-for-job [[job-name builds] user-sync-start-time state]
+  (let [last-sync-time (get-in state ["jobs" job-name "lastStart"])
         sync-start-time (or (when last-sync-time
                               (tc/from-long last-sync-time))
                             user-sync-start-time)]
