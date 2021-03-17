@@ -125,8 +125,10 @@
                               user-sync-start-time
                               state-file-path]}
                       fetch-builds]
-  (let [state (read-state state-file-path)]
+  (let [state (read-state state-file-path)
+        sync-start-time (or user-sync-start-time
+                            two-months-ago)]
     (->> (fetch-builds base-url)
-         (map #(builds-for-job % user-sync-start-time state))
+         (map #(builds-for-job % sync-start-time state))
          doall
          (write-state state-file-path))))

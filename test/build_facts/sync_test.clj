@@ -4,7 +4,8 @@
             [cheshire.core :as j]
             [clj-time
              [core :as t]
-             [coerce :as tc]]
+             [coerce :as tc]
+             [local :as l]]
             [clojure.test :refer :all]))
 
 (def beginning-of-2016 (t/date-time 2016 1 1))
@@ -22,6 +23,9 @@
 
 (defn- unix-time [& params]
   (tc/to-long (apply t/date-time params)))
+
+(def one-month-ago (t/minus (.withTimeAtStartOfDay (l/local-now)) (t/months 1)))
+(def three-months-ago (t/minus (.withTimeAtStartOfDay (l/local-now)) (t/months 3)))
 
 (deftest test-sync
   (testing "sends the unix epoch in seconds as event timestamp for Splunk"
@@ -57,6 +61,24 @@
                                                     :start (unix-time 2016 1 1 10 0 0)}]]]))))
                 clojure.string/split-lines
                 (map #(j/parse-string % true))))))
+
+  (testing "in absence of a sync start time will fallback to two months of data"
+    (is (= '("21")
+           (->> (with-out-str
+                  (with-no-err
+                    (sut/sync-builds-v2 {:base-url 'some-url'}
+                                        (fn [_] [["fake-job"
+                                                  [{:job-name "fake-job"
+                                                    :build-id "21"
+                                                    :outcome "pass"
+                                                    :start (tc/to-long one-month-ago)}
+                                                   {:job-name "fake-job"
+                                                    :build-id "20"
+                                                    :outcome "pass"
+                                                    :start (tc/to-long three-months-ago)}]]]))))
+                clojure.string/split-lines
+                (map #(j/parse-string % true))
+                (map :buildId)))))
 
   (testing "syncs from oldest build to newest build with a known outcome so we can come back later and resume once build is done"
     (is (= '({:jobName "fake-job"
