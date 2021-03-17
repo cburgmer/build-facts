@@ -111,16 +111,18 @@
       (when (.exists state-file)
         (j/parse-string (slurp state-file-path))))))
 
-(defn- write-state [state-file-path state last-builds]
-  (when state-file-path
-    (->> last-builds
+(defn- update-state [state builds]
+  (let [existing-state (or (get state "jobs")
+                           {})]
+    (->> builds
          (remove (fn [[job-name builds]] (empty? builds)))
          (map (fn [[job-name builds]] [job-name {:lastStart (:start (last builds))}]))
-         (into (or (get state "jobs")
-                   {}))
-         (assoc {} :jobs)
-         j/generate-string
-         (spit state-file-path))))
+         (into existing-state)
+         (assoc {} :jobs))))
+
+(defn- write-state [state-file-path state]
+  (when state-file-path
+    (spit state-file-path (j/generate-string state))))
 
 
 (defn sync-builds-v2 [{:keys [base-url
@@ -135,4 +137,5 @@
     (->> (fetch-builds base-url)
          (map #(builds-for-job % sync-start-time state splunkFormat? output))
          doall
-         (write-state state-file-path state))))
+         (update-state state)
+         (write-state state-file-path))))
