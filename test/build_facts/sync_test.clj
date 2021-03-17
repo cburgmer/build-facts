@@ -6,6 +6,7 @@
              [core :as t]
              [coerce :as tc]
              [local :as l]]
+            [clojure.java.io :as io]
             [clojure.test :refer :all]))
 
 (def beginning-of-2016 (t/date-time 2016 1 1))
@@ -279,4 +280,29 @@
                                           :start (unix-time 2016 1 2 9 0 0)}]]]))))
       (is (= {"jobs" {"fake-job" {"lastStart" 1451728800000}
                       "another-job" {"lastStart" 1451732400000}}}
-             (j/parse-string (slurp state-file)))))))
+             (j/parse-string (slurp state-file))))))
+
+  (testing "should optionally store results"
+    (let [tmp-dir (create-tmp-dir "tmp")]
+      (with-out-str
+        (with-no-err
+          (sut/sync-builds-v2 {:base-url 'some-url'
+                               :user-sync-start-time beginning-of-2016
+                               :output tmp-dir}
+                              (fn [_] [["fake-job"
+                                        [{:job-name "fake-job"
+                                          :build-id "21"
+                                          :outcome "pass"
+                                          :start (unix-time 2016 1 1 10 0 0)}]]]))))
+      (is (= '("fake-job")
+             (->> (.listFiles (io/file tmp-dir))
+                  (map #(.getName %)))))
+      (is (= '("21.json")
+             (->> (.listFiles (io/file tmp-dir "fake-job"))
+                  (map #(.getName %)))))
+      (is (= {:jobName "fake-job"
+              :buildId "21"
+              :outcome "pass"
+              :start 1451642400000}
+             (j/parse-string (slurp (io/file tmp-dir "fake-job" "21.json"))
+                             true))))))

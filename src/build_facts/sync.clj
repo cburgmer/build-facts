@@ -91,18 +91,17 @@
   (or (nil? start)
       (t/after? (tc/from-long start) sync-start-time)))
 
-(defn- builds-for-job [[job-name builds] user-sync-start-time state]
+(defn- builds-for-job [[job-name builds] sync-start-time state output]
   (let [last-sync-time (get-in state ["jobs" job-name "lastStart"])
         sync-start-time (or (when last-sync-time
                               (tc/from-long last-sync-time))
-                            user-sync-start-time)]
+                            sync-start-time)]
     (->> builds
          (take-while #(build-recent? % sync-start-time))
          reverse
          (take-while (fn [{outcome :outcome}] (or (= outcome "pass")
                                                   (= outcome "fail"))))
-         (map #(do (println (json/to-string %))
-                   %))
+         (map #(output! output false %))
          last)))
 
 (defn- read-state [state-file-path]
@@ -123,12 +122,13 @@
 
 (defn sync-builds-v2 [{:keys [base-url
                               user-sync-start-time
-                              state-file-path]}
+                              state-file-path
+                              output]}
                       fetch-builds]
   (let [state (read-state state-file-path)
         sync-start-time (or user-sync-start-time
                             two-months-ago)]
     (->> (fetch-builds base-url)
-         (map #(builds-for-job % sync-start-time state))
+         (map #(builds-for-job % sync-start-time state output))
          doall
          (write-state state-file-path))))
