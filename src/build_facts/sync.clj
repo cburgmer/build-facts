@@ -111,7 +111,8 @@
         (j/parse-string (slurp state-file-path))))))
 
 (defn- write-state [state-file-path last-builds]
-  (when state-file-path
+  (when (and state-file-path
+             (not (empty? last-builds)))
     (->> last-builds
          (map (fn [{:keys [job-name start]}] [job-name {:lastStart start}]))
          (into {})

@@ -307,6 +307,17 @@
                   clojure.string/split-lines
                   (map #(j/parse-string % true)))))))
 
+  (testing "should not store the last synced build time if nothing was synced"
+    (let [state-file (format "%s/state.json" (create-tmp-dir "tmp"))]
+      (with-out-str
+        (with-no-err
+          (sut/sync-builds-v2 {:base-url 'some-url
+                               :user-sync-start-time beginning-of-2016
+                               :state-file-path state-file}
+                              (fn [_] []))))
+
+      (is (not (.exists (io/file state-file))))))
+
   (testing "should optionally sync in Splunk HEC format"
     (is (= '({:time 1451642400
               :source "build-facts"
