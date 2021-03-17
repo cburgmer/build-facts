@@ -34,7 +34,7 @@
       (is (= {:time 123456
               :source "build-facts"
               :event {:jobName "fake-job"
-                      :end 123456789}}
+                      :start 123456789}}
              (j/parse-string (with-out-str
                                (with-no-err
                                  (sut/sync-builds {:base-url 'some-url'
@@ -42,7 +42,7 @@
                                                    :splunkFormat? true
                                                    :state-file-path (format "%s/state.json" tmp-dir)}
                                                   (fn [_] '({:job-name "fake-job"
-                                                             :end 123456789})))))
+                                                             :start 123456789})))))
                              true))))))
 
 (deftest test-sync-v2
@@ -306,6 +306,26 @@
                                                       :start (unix-time 2016 1 2 11 0 0)}]]]))))
                   clojure.string/split-lines
                   (map #(j/parse-string % true)))))))
+
+  (testing "should optionally sync in Splunk HEC format"
+    (is (= '({:time 1451642400
+              :source "build-facts"
+              :event {:jobName "fake-job"
+                      :buildId "21"
+                      :outcome "pass"
+                      :start 1451642400000}})
+           (->> (with-out-str
+                  (with-no-err
+                    (sut/sync-builds-v2 {:base-url 'some-url'
+                                         :user-sync-start-time beginning-of-2016
+                                         :splunkFormat? true}
+                                        (fn [_] [["fake-job"
+                                                  [{:job-name "fake-job"
+                                                    :build-id "21"
+                                                    :outcome "pass"
+                                                    :start (unix-time 2016 1 1 10 0 0)}]]]))))
+                clojure.string/split-lines
+                (map #(j/parse-string % true))))))
 
   (testing "should optionally store results"
     (let [tmp-dir (create-tmp-dir "tmp")]

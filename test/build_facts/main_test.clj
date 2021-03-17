@@ -251,7 +251,7 @@
           (let [output (with-out-str
                          (with-no-err
                            (sut/-main "concourse" "mock-target" "--from" "2016-01-01" "--splunk")))]
-            (is (= {:time 1451642401
+            (is (= {:time 1451642400
                     :source "build-facts"
                     :event {:jobName "my-pipeline my-job"
                             :buildId "42"

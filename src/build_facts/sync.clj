@@ -17,7 +17,7 @@
 (def two-months-ago (t/minus (.withTimeAtStartOfDay (l/local-now)) (t/months 2)))
 
 (defn- build->splunk-format [build] ;; https://docs.splunk.com/Documentation/Splunk/8.1.2/Data/FormateventsforHTTPEventCollector
-  {:time (int (/ (:end build)
+  {:time (int (/ (:start build)
                  1000))
    :source "build-facts"
    :event build})
@@ -91,7 +91,7 @@
   (or (nil? start)
       (t/after? (tc/from-long start) sync-start-time)))
 
-(defn- builds-for-job [[job-name builds] sync-start-time state output]
+(defn- builds-for-job [[job-name builds] sync-start-time state splunkFormat? output]
   (let [last-sync-time (get-in state ["jobs" job-name "lastStart"])
         sync-start-time (or (when last-sync-time
                               (tc/from-long last-sync-time))
@@ -101,7 +101,7 @@
          reverse
          (take-while (fn [{outcome :outcome}] (or (= outcome "pass")
                                                   (= outcome "fail"))))
-         (map #(output! output false %))
+         (map #(output! output splunkFormat? %))
          last)))
 
 (defn- read-state [state-file-path]
@@ -123,12 +123,13 @@
 (defn sync-builds-v2 [{:keys [base-url
                               user-sync-start-time
                               state-file-path
+                              splunkFormat?
                               output]}
                       fetch-builds]
   (let [state (read-state state-file-path)
         sync-start-time (or user-sync-start-time
                             two-months-ago)]
     (->> (fetch-builds base-url)
-         (map #(builds-for-job % sync-start-time state output))
+         (map #(builds-for-job % sync-start-time state splunkFormat? output))
          doall
          (write-state state-file-path))))
