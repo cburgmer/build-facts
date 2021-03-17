@@ -96,13 +96,14 @@
         sync-start-time (or (when last-sync-time
                               (tc/from-long last-sync-time))
                             sync-start-time)]
-    (->> builds
-         (take-while #(build-recent? % sync-start-time))
-         reverse
-         (take-while (fn [{outcome :outcome}] (or (= outcome "pass")
-                                                  (= outcome "fail"))))
-         (map #(output! output splunkFormat? %))
-         last)))
+    [job-name
+     (->> builds
+          (take-while #(build-recent? % sync-start-time))
+          reverse
+          (take-while (fn [{outcome :outcome}] (or (= outcome "pass")
+                                                   (= outcome "fail"))))
+          (map #(output! output splunkFormat? %))
+          doall)]))
 
 (defn- read-state [state-file-path]
   (when state-file-path
@@ -110,12 +111,13 @@
       (when (.exists state-file)
         (j/parse-string (slurp state-file-path))))))
 
-(defn- write-state [state-file-path last-builds]
-  (when (and state-file-path
-             (not (empty? last-builds)))
+(defn- write-state [state-file-path state last-builds]
+  (when state-file-path
     (->> last-builds
-         (map (fn [{:keys [job-name start]}] [job-name {:lastStart start}]))
-         (into {})
+         (remove (fn [[job-name builds]] (empty? builds)))
+         (map (fn [[job-name builds]] [job-name {:lastStart (:start (last builds))}]))
+         (into (or (get state "jobs")
+                   {}))
          (assoc {} :jobs)
          j/generate-string
          (spit state-file-path))))
@@ -133,4 +135,4 @@
     (->> (fetch-builds base-url)
          (map #(builds-for-job % sync-start-time state splunkFormat? output))
          doall
-         (write-state state-file-path))))
+         (write-state state-file-path state))))

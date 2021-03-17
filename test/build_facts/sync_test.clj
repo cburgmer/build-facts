@@ -307,7 +307,7 @@
                   clojure.string/split-lines
                   (map #(j/parse-string % true)))))))
 
-  (testing "should not store the last synced build time if nothing was synced"
+  (testing "should store an empty jobs list if nothing was synced on first call"
     (let [state-file (format "%s/state.json" (create-tmp-dir "tmp"))]
       (with-out-str
         (with-no-err
@@ -316,7 +316,31 @@
                                :state-file-path state-file}
                               (fn [_] []))))
 
-      (is (not (.exists (io/file state-file))))))
+      (is (= {"jobs" {}}
+             (j/parse-string (slurp state-file))))))
+
+  (testing "should not override a job's state if nothing new was synced for it while others were"
+    (let [state-file (format "%s/state.json" (create-tmp-dir "tmp"))]
+      (spit state-file (j/generate-string {"jobs" {"fake-job" {"lastStart" 1580511600000}}}))
+      (with-out-str
+        (with-no-err
+          (sut/sync-builds-v2 {:base-url 'some-url
+                               :user-sync-start-time beginning-of-2016
+                               :state-file-path state-file}
+                              (fn [_] [["fake-job"
+                                        [{:job-name "fake-job"
+                                          :build-id "21"
+                                          :outcome "pass"
+                                          :start (unix-time 2020 1 1 0 0 0)}]]
+                                       ["new-job"
+                                        [{:job-name "new-job"
+                                          :build-id "43"
+                                          :outcome "fail"
+                                          :start (unix-time 2016 1 2 11 0 0)}]]]))))
+
+      (is (= {"jobs" {"fake-job" {"lastStart" 1580511600000}
+                      "new-job" {"lastStart" 1451732400000}}}
+             (j/parse-string (slurp state-file))))))
 
   (testing "should optionally sync in Splunk HEC format"
     (is (= '({:time 1451642400
