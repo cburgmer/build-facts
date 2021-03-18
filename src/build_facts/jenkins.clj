@@ -18,7 +18,12 @@
                 "Action arguments:"
                 ""
                 "JENKINS_URL            The URL of the Jenkins installation. Provide the URL of"
-                "                       a view to limit the sync to respective jobs."]))
+                "                       a view to limit the sync to respective jobs."
+                ""
+                "Environment variables:"
+                ""
+                "JENKINS_USER           Username for basic auth"
+                "JENKINS_PASSWORD       Password for basic auth"]))
 
 (defn parse-options [c-args]
   (let [args (parse-opts c-args shared/cli-options)]

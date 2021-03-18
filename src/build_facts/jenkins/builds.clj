@@ -1,10 +1,7 @@
 (ns build-facts.jenkins.builds
   (:require [build-facts.jenkins
              [api :as api]
-             [transform :as transform]]
-            [clj-time
-             [coerce :as tc]
-             [core :as t]]))
+             [transform :as transform]]))
 
 (defn add-test-results [jenkins-url {:keys [job-name number] :as build}]
   (assoc build :test-report (api/get-test-report jenkins-url job-name number)))

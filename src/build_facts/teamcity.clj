@@ -27,7 +27,12 @@
                 ""
                 "TEAMCITY_URL           The URL of the TeamCity installation. You will most probably"
                 "                       need some form of credentials. If 'guest user login' is"
-                "                       enabled, you can try e.g. 'http://guest@localhost:8111'."]))
+                "                       enabled, you can try e.g. 'http://guest@localhost:8111'."
+                ""
+                "Environment variables:"
+                ""
+                "TEAMCITY_USER          Username for basic auth"
+                "TEAMCITY_PASSWORD      Password for basic auth"]))
 
 (defn- parse-options [c-args]
   (let [args (parse-opts c-args concourse-cli-options)]

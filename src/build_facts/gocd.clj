@@ -25,7 +25,12 @@
                 ""
                 "Action arguments:"
                 ""
-                "GO_URL            The URL of the GoCD installation"]))
+                "GO_URL            The URL of the GoCD installation"
+                ""
+                "Environment variables:"
+                ""
+                "GOCD_USER         Username for basic auth"
+                "GOCD_PASSWORD     Password for basic auth"]))
 
 (defn- parse-options [c-args]
   (let [args (parse-opts c-args gocd-cli-options)]

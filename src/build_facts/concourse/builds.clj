@@ -3,9 +3,6 @@
              [api :as api]
              [transform :as transform]]
             [clj-yaml.core :as yaml]
-            [clj-time
-             [coerce :as tc]
-             [core :as t]]
             [clojure.java.io :as io]))
 
 (defn config-for [concourse-target]
