@@ -342,6 +342,19 @@
                       "new-job" {"lastStart" 1451732400000}}}
              (j/parse-string (slurp state-file))))))
 
+  (testing "should remove a stale job from the state"
+    (let [state-file (format "%s/state.json" (create-tmp-dir "tmp"))]
+      (spit state-file (j/generate-string {"jobs" {"fake-job" {"lastStart" 1451642400000}
+                                                   "stale-job" {"lastStart" 1451725200000}}}))
+      (with-out-str
+        (with-no-err
+          (sut/sync-builds-v2 {:base-url 'some-url
+                               :user-sync-start-time beginning-of-2016
+                               :state-file-path state-file}
+                              (fn [_] [["fake-job" []]]))))
+      (is (= {"jobs" {"fake-job" {"lastStart" 1451642400000}}}
+             (j/parse-string (slurp state-file))))))
+
   (testing "should optionally sync in Splunk HEC format"
     (is (= '({:time 1451642400
               :source "build-facts"

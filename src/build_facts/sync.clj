@@ -113,11 +113,13 @@
 
 (defn- update-state [state builds]
   (let [existing-state (or (get state "jobs")
-                           {})]
+                           {})
+        pruned-state (select-keys existing-state
+                                  (map (fn [[job-name]] job-name) builds))]
     (->> builds
          (remove (fn [[job-name builds]] (empty? builds)))
          (map (fn [[job-name builds]] [job-name {:lastStart (:start (last builds))}]))
-         (into existing-state)
+         (into pruned-state)
          (assoc {} :jobs))))
 
 (defn- write-state [state-file-path state]
