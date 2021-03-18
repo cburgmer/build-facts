@@ -259,26 +259,4 @@
                             :start 1451642400000
                             :end 1451642401000}}
                    (j/parse-string output
-                                   true))))))))
-
-  (testing "should not error when syncing in Splunk format and keeping state"
-    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
-                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
-                                                  (some-builds "my-team" "my-pipeline" "my-job"
-                                                               {:id 4
-                                                                :name "42"
-                                                                :status "succeeded"
-                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
-      (let [tmp-dir (create-tmp-dir "data")]
-        (with-fake-flyrc tmp-dir
-          (let [output (with-out-str
-                         (with-no-err
-                           (sut/-main "concourse"
-                                      "mock-target"
-                                      "--from" "2016-01-01"
-                                      "--splunk"
-                                      "--state" (.getPath (io/file tmp-dir "state.json")))))]
-            (is (= {:lastBuildStart 1451642400000}
-                   (j/parse-string (slurp (.getPath (io/file tmp-dir "state.json")))
                                    true)))))))))

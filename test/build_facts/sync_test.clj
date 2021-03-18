@@ -398,4 +398,20 @@
               :outcome "pass"
               :start 1451642400000}
              (j/parse-string (slurp (io/file tmp-dir "fake-job" "21.json"))
-                             true))))))
+                             true)))))
+
+  (testing "should not error when syncing in Splunk format and keeping state"
+    (let [state-file (format "%s/state.json" (create-tmp-dir "tmp"))]
+      (with-out-str
+        (with-no-err
+          (sut/sync-builds-v2 {:base-url 'some-url'
+                               :user-sync-start-time beginning-of-2016
+                               :splunkFormat? true
+                               :state-file-path state-file}
+                              (fn [_] [["fake-job"
+                                        [{:job-name "fake-job"
+                                          :build-id "21"
+                                          :outcome "pass"
+                                          :start (unix-time 2016 1 1 10 0 0)}]]]))))
+      (is (= {"jobs" {"fake-job" {"lastStart" 1451642400000}}}
+             (j/parse-string (slurp state-file)))))))
