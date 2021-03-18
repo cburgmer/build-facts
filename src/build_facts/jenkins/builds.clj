@@ -9,19 +9,11 @@
 (defn add-test-results [jenkins-url {:keys [job-name number] :as build}]
   (assoc build :test-report (api/get-test-report jenkins-url job-name number)))
 
-(defn- jenkins-build->start-time [{timestamp :timestamp}]
-  (tc/from-long timestamp))
+(defn builds-for-job [base-url job-name]
+  [job-name (->> (api/get-builds base-url job-name)
+                 (map (partial add-test-results base-url))
+                 (map transform/jenkins-build->build-facts-build))])
 
-(defn- ignore-ongoing-builds [builds]
-  (filter :result builds))
-
-(defn- all-builds-for-job [jenkins-url sync-start-time job-name]
-  (->> (api/get-builds jenkins-url job-name)
-       (take-while #(t/after? (jenkins-build->start-time %) sync-start-time))
-       ignore-ongoing-builds))
-
-(defn jenkins-builds [{base-url :base-url} sync-start-time]
+(defn jenkins-builds [{base-url :base-url}]
   (->> (api/get-jobs base-url)
-       (mapcat #(all-builds-for-job base-url sync-start-time %))
-       (map (partial add-test-results base-url))
-       (map transform/jenkins-build->build-facts-build)))
+       (map #(builds-for-job base-url %))))

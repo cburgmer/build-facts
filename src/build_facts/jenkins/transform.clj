@@ -57,9 +57,10 @@
              :build-id (str number)
              :start timestamp
              :end (+ timestamp duration)
-             :outcome (if (= result "SUCCESS")
-                        "pass"
-                        "fail")}
+             :outcome (case result
+                            "SUCCESS" "pass"
+                            "FAILURE" "fail"
+                            "ongoing")}
       inputs (assoc :inputs inputs)
       triggered-by (assoc :triggered-by triggered-by)
       test-results (assoc :test-results test-results))))

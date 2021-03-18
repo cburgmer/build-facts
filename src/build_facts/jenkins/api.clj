@@ -45,7 +45,7 @@
                 (lazy-seq (get-builds-starting-from jenkins-url job-name next-offset)))))))
 
 (defn get-builds [jenkins-url job-name]
-  (get-builds-starting-from jenkins-url job-name 0))
+  (lazy-seq (get-builds-starting-from jenkins-url job-name 0))) ; don't do an api call yet, helps the progress bar to render early
 
 (defn get-test-report [jenkins-url job-name build-number]
   (let [test-report-url (templ/uritemplate "/job{/job}{/build}/testReport/api/json"

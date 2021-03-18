@@ -41,18 +41,17 @@
 (defn- serve-up [& routes]
   (into {} routes))
 
-(def beginning-of-2016 (t/date-time 2016 1 1))
-
 
 (deftest test-jenkins-builds
   (testing "should handle no jobs"
     (fake/with-fake-routes-in-isolation (serve-up (a-view))
-      (is (empty? (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")} beginning-of-2016)))))
+      (is (empty? (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")})))))
 
   (testing "should handle no builds"
     (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
                                                   (a-job-with-builds "some_job"))
-      (is (empty? (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")} beginning-of-2016)))))
+      (is (= '(["some_job" []])
+             (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")})))))
 
   (testing "should sync a simple build"
     (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
@@ -61,12 +60,35 @@
                                                                                  :duration 10200
                                                                                  :result "SUCCESS"})
                                                   (no-test-report "some_job" 21))
-      (is (= '({:job-name "some_job"
-                :build-id "21"
-                :start 1493201298062
-                :end 1493201308262
-                :outcome "pass"})
-             (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")} beginning-of-2016)))))
+      (is (= '(["some_job"
+                [{:job-name "some_job"
+                  :build-id "21"
+                  :start 1493201298062
+                  :end 1493201308262
+                  :outcome "pass"}]])
+             (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")})))))
+
+  (testing "should sync a failed build"
+    (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
+                                                  (a-job-with-builds "some_job" {:number 21
+                                                                                 :timestamp 1493201298062
+                                                                                 :duration 10200
+                                                                                 :result "FAILURE"})
+                                                  (no-test-report "some_job" 21))
+      (let [[[_ [build]]] (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")})]
+        (is (= "fail"
+               (:outcome build))))))
+
+  (testing "should sync a failed build"
+    (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
+                                                  (a-job-with-builds "some_job" {:number 21
+                                                                                 :timestamp 1493201298062
+                                                                                 :duration 0
+                                                                                 :result nil})
+                                                  (no-test-report "some_job" 21))
+      (let [[[_ [build]]] (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")})]
+        (is (= "ongoing"
+               (:outcome build))))))
 
   (testing "should include inputs and reference to build it was triggered by"
     (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
@@ -81,15 +103,16 @@
                                                                                            {:causes [{:upstreamProject "the_upstream"
                                                                                                       :upstreamBuild "33"}]}]})
                                                   (no-test-report "some_job" 21))
-      (is (= '({:job-name "some_job"
-                :build-id "21"
-                :start 1493201298062
-                :end 1493201308262
-                :outcome "pass"
-                :inputs ({:revision "234567890" :source-id "some-url"}
-                         {:revision "some-value" :source-id "the-name"})
-                :triggered-by ({:job-name "the_upstream", :build-id "33"})})
-             (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")} beginning-of-2016)))))
+      (is (= '(["some_job"
+                [{:job-name "some_job"
+                  :build-id "21"
+                  :start 1493201298062
+                  :end 1493201308262
+                  :outcome "pass"
+                  :inputs ({:revision "234567890" :source-id "some-url"}
+                           {:revision "some-value" :source-id "the-name"})
+                  :triggered-by ({:job-name "the_upstream", :build-id "33"})}]])
+             (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")})))))
 
   (testing "should omit build trigger if triggered by user due to temporal disconnect"
     (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
@@ -101,9 +124,8 @@
                                                                                                       :upstreamBuild "33"}]}
                                                                                            {:causes [{:userId "the_user"}]}]})
                                                   (no-test-report "some_job" 21))
-      (is (nil? (-> (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")} beginning-of-2016)
-                    first
-                    :triggered-by)))))
+      (let [[[_ [build]]] (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")})]
+        (is (nil? (:triggered-by build))))))
 
   (testing "should include test results"
     (fake/with-fake-routes-in-isolation (serve-up (a-view (a-job "some_job"))
@@ -118,11 +140,10 @@
                                                                     21
                                                                     (a-test-suite "my-suite"
                                                                                   (a-test-case "my-class" "my-name" 0.042 "PASSED"))))
-      (is (= '({:name "my-suite"
-                :children ({:classname "my-class"
-                            :name "my-name"
-                            :runtime 42
-                            :status "pass"})})
-             (-> (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")} beginning-of-2016)
-                 first
-                 :test-results))))))
+      (let [[[_ [build]]] (sut/jenkins-builds {:base-url (url/url "http://jenkins:4321")})]
+        (is (= '({:name "my-suite"
+                  :children ({:classname "my-class"
+                              :name "my-name"
+                              :runtime 42
+                              :status "pass"})})
+               (:test-results build)))))))
