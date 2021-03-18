@@ -29,13 +29,13 @@
                       concourse-target
                       concourse-target))))))
 
-(defn- builds-for-job [config sync-start-time job]
-  (->> (api/all-builds-for-job config job)
-       (map transform/concourse->build)
-       (take-while #(t/after? (tc/from-long (:start %)) sync-start-time))))
+(defn- builds-for-job [config {:keys [pipeline_name name] :as job}]
+  [(transform/full-job-name pipeline_name name)
+   (->> (api/all-builds-for-job config job)
+        (map transform/concourse->build))])
 
-(defn concourse-builds [config sync-start-time]
+(defn concourse-builds [config]
   (api/test-login config)
   (->> (api/all-jobs config)
        (filter #(= (:team_name %) (:team-name config)))
-       (mapcat #(builds-for-job config sync-start-time %))))
+       (map #(builds-for-job config %))))

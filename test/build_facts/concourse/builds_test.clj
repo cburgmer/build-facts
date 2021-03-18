@@ -7,8 +7,6 @@
              [core :as t]]
             [clojure.test :refer :all]))
 
-(def beginning-of-2016 (t/date-time 2016 1 1))
-
 (defn- successful-json-response [body]
   (fn [_] {:status 200
            :body (j/generate-string body)}))
@@ -61,13 +59,13 @@
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
-                                    :team-name "my-team"}
-                                   beginning-of-2016)
-             '({:job-name "my-pipeline my-job"
-                :build-id "42"
-                :outcome "pass"
-                :start 1451642400000
-                :end 1451642401000})))))
+                                    :team-name "my-team"})
+             '(["my-pipeline my-job"
+                [{:job-name "my-pipeline my-job"
+                  :build-id "42"
+                  :outcome "pass"
+                  :start 1451642400000
+                  :end 1451642401000}]])))))
 
   (testing "should sync a failing build"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
@@ -80,13 +78,32 @@
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
-                                    :team-name "my-team"}
-                                   beginning-of-2016)
-             '({:job-name "my-pipeline my-job"
-                :build-id "42"
-                :outcome "fail"
-                :start 1451642400000
-                :end 1451642401000})))))
+                                    :team-name "my-team"})
+             '(["my-pipeline my-job"
+                [{:job-name "my-pipeline my-job"
+                  :build-id "42"
+                  :outcome "fail"
+                  :start 1451642400000
+                  :end 1451642401000}]])))))
+
+  (testing "should handle a started build"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "started"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+      (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
+                                    :bearer-token "fake-token"
+                                    :team-name "my-team"})
+             '(["my-pipeline my-job"
+                [{:job-name "my-pipeline my-job"
+                  :build-id "42"
+                  :outcome "ongoing"
+                  :start 1451642400000
+                  :end 1451642401000}]])))))
 
   (testing "should handle aborted build without start time"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
@@ -97,13 +114,13 @@
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
-                                    :team-name "my-team"}
-                                   beginning-of-2016)
-             '({:job-name "my-pipeline my-job"
-                :build-id "42"
-                :outcome "fail"
-                :start 1451642401000
-                :end 1451642401000})))))
+                                    :team-name "my-team"})
+             '(["my-pipeline my-job"
+                [{:job-name "my-pipeline my-job"
+                  :build-id "42"
+                  :outcome "fail"
+                  :start 1451642401000
+                  :end 1451642401000}]])))))
 
   (testing "should handle errored build"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
@@ -115,13 +132,13 @@
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
-                                    :team-name "my-team"}
-                                   beginning-of-2016)
-             '({:job-name "my-pipeline my-job"
-                :build-id "42"
-                :outcome "fail"
-                :start 1451642400000,
-                :end 1451642401000})))))
+                                    :team-name "my-team"})
+             '(["my-pipeline my-job"
+                [{:job-name "my-pipeline my-job"
+                  :build-id "42"
+                  :outcome "fail"
+                  :start 1451642400000,
+                  :end 1451642401000}]])))))
 
   (testing "should not sync builds from a different team"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
@@ -139,13 +156,13 @@
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
-                                    :team-name "my-team"}
-                                   beginning-of-2016)
-             '({:job-name "my-pipeline my-job"
-                :build-id "42"
-                :outcome "pass"
-                :start 1451642400000
-                :end 1451642401000})))))
+                                    :team-name "my-team"})
+             '(["my-pipeline my-job"
+                [{:job-name "my-pipeline my-job"
+                  :build-id "42"
+                  :outcome "pass"
+                  :start 1451642400000
+                  :end 1451642401000}]])))))
 
   (testing "should handle pagination for long build histories"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
@@ -182,64 +199,25 @@
                                                                       :end_time (unix-time-in-s 2016 1 1 2 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
-                                    :team-name "my-team"}
-                                   beginning-of-2016)
-             '({:job-name "my-pipeline my-job"
-                :build-id "43"
-                :outcome "pass"
-                :start 1454328000000
-                :end 1454328001000}
-               {:job-name "my-pipeline my-job"
-                :build-id "42"
-                :outcome "pass"
-                :start 1451642400000
-                :end 1451642401000}
-               {:job-name "my-pipeline my-job"
-                :build-id "41"
-                :outcome "pass"
-                :start 1451613600000
-                :end 1451613601000})))))
+                                    :team-name "my-team"})
+             '(["my-pipeline my-job"
+                [{:job-name "my-pipeline my-job"
+                  :build-id "43"
+                  :outcome "pass"
+                  :start 1454328000000
+                  :end 1454328001000}
+                 {:job-name "my-pipeline my-job"
+                  :build-id "42"
+                  :outcome "pass"
+                  :start 1451642400000
+                  :end 1451642401000}
+                 {:job-name "my-pipeline my-job"
+                  :build-id "41"
+                  :outcome "pass"
+                  :start 1451613600000
+                  :end 1451613601000}]])))))
 
-  (testing "should stop syncing after given date"
-    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
-                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
-                                                  (some-builds "my-team" "my-pipeline" "my-job"
-                                                               {:id 5
-                                                                :name "43"
-                                                                :status "succeeded"
-                                                                :start_time (unix-time-in-s 2016 2 1 12 0 0)
-                                                                :end_time (unix-time-in-s 2016 2 1 12 0 1)}
-                                                               {:id 4
-                                                                :name "42"
-                                                                :status "succeeded"
-                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}
-                                                               {:id 2
-                                                                :name "41"
-                                                                :status "succeeded"
-                                                                :start_time (unix-time-in-s 2015 12 31 10 0 0)
-                                                                :end_time (unix-time-in-s 2015 12 31 10 0 1)}
-                                                               {:id 1
-                                                                :name "40"
-                                                                :status "succeeded"
-                                                                :start_time (unix-time-in-s 2015 12 30 10 0 0)
-                                                                :end_time (unix-time-in-s 2015 12 30 10 0 1)}))
-      (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
-                                    :bearer-token "fake-token"
-                                    :team-name "my-team"}
-                                   beginning-of-2016)
-             '({:job-name "my-pipeline my-job"
-                :build-id "43"
-                :outcome "pass"
-                :start 1454328000000
-                :end 1454328001000}
-               {:job-name "my-pipeline my-job"
-                :build-id "42"
-                :outcome "pass"
-                :start 1451642400000
-                :end 1451642401000})))))
-
-  (testing "should not confuse date of multiple jobs"
+  (testing "should handle multiple jobs"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
                                                   (all-jobs (a-job "my-team" "my-pipeline" "my-job")
                                                             (a-job "my-team" "my-pipeline" "another-job"))
@@ -248,34 +226,25 @@
                                                                 :name "42"
                                                                 :status "succeeded"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}
-                                                               {:id 2
-                                                                :name "41"
-                                                                :status "succeeded"
-                                                                :start_time (unix-time-in-s 2015 12 31 10 0 0)
-                                                                :end_time (unix-time-in-s 2015 12 31 10 0 1)})
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                   (some-builds "my-team" "my-pipeline" "another-job"
                                                                {:id 3
                                                                 :name "10"
                                                                 :status "succeeded"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}
-                                                               {:id 1
-                                                                :name "9"
-                                                                :status "succeeded"
-                                                                :start_time (unix-time-in-s 2015 12 31 10 0 0)
-                                                                :end_time (unix-time-in-s 2015 12 31 10 0 1)}))
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
-                                    :team-name "my-team"}
-                                   beginning-of-2016)
-             '({:job-name "my-pipeline my-job"
-                :build-id "42"
-                :outcome "pass"
-                :start 1451642400000
-                :end 1451642401000}
-               {:job-name "my-pipeline another-job"
-                :build-id "10"
-                :outcome "pass"
-                :start 1451642400000
-                :end 1451642401000}))))))
+                                    :team-name "my-team"})
+             '(["my-pipeline my-job"
+                [{:job-name "my-pipeline my-job"
+                  :build-id "42"
+                  :outcome "pass"
+                  :start 1451642400000
+                  :end 1451642401000}]]
+               ["my-pipeline another-job"
+                [{:job-name "my-pipeline another-job"
+                  :build-id "10"
+                  :outcome "pass"
+                  :start 1451642400000
+                  :end 1451642401000}]]))))))

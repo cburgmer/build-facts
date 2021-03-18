@@ -135,9 +135,12 @@
                       fetch-builds]
   (let [state (read-state state-file-path)
         sync-start-time (or user-sync-start-time
-                            two-months-ago)]
-    (->> (fetch-builds base-url)
-         (map #(builds-for-job % sync-start-time state splunkFormat? output))
-         doall
-         (update-state state)
-         (write-state state-file-path))))
+                            two-months-ago)
+        console? (some? output)]
+    (let [synced-builds (->> (fetch-builds)
+                             (map #(builds-for-job % sync-start-time state splunkFormat? output))
+                             doall)]
+      (->> synced-builds
+           (update-state state)
+           (write-state state-file-path))
+      (log console? (format "Synced %s builds" (count (mapcat (fn [[_ builds]] builds) synced-builds)))))))
