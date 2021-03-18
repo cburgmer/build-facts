@@ -7,7 +7,6 @@ pom.xml.asc
 *.class
 /.lein-*
 /.nrepl-port
-/data/
 /log/
 /examples/gocd/server/config/
 /examples/teamcity/data/

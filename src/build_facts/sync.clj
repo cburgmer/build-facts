@@ -137,8 +137,13 @@
         sync-start-time (or user-sync-start-time
                             two-months-ago)
         console? (some? output)]
+    (log console? (if state
+                    (format "Resuming %s from last sync..." base-url)
+                    (format "Starting %s from %s..."
+                            base-url
+                            (tf/unparse (:date-time tf/formatters) user-sync-start-time))))
     (let [synced-builds (->> (fetch-builds)
-                             (map #(builds-for-job % sync-start-time state splunkFormat? output))
+                             (with-progress console? #(builds-for-job % sync-start-time state splunkFormat? output))
                              doall)]
       (->> synced-builds
            (update-state state)

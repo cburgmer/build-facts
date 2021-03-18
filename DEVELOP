@@ -6,7 +6,7 @@ Just a few pointers if you want to make changes to build-facts:
 
 ## Run sync for Jenkins locally
 
-    $ ./lein run -m build-facts.main jenkins http://$USER:$PW@localhost:8080
+    $ ./lein run jenkins http://$USER:$PW@localhost:8080
 
 ## Make a new release
 
