@@ -41,5 +41,5 @@
   (let [concourse-options (merge options
                                  (parse-options (:action-args options)))
         config (builds/config-for (:concourse-target concourse-options))]
-    (sync/sync-builds-v2 (assoc concourse-options :base-url (:base-url config))
-                         #(builds/concourse-builds config))))
+    (sync/sync-builds (assoc concourse-options :base-url (:base-url config))
+                      #(builds/concourse-builds config))))

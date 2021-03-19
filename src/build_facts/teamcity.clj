@@ -56,5 +56,5 @@
 (defn run [options]
   (let [teamcity-options (merge options
                                 (parse-options (:action-args options)))]
-    (sync/sync-builds-v2 teamcity-options
-                         #(builds/teamcity-builds teamcity-options))))
+    (sync/sync-builds teamcity-options
+                      #(builds/teamcity-builds teamcity-options))))

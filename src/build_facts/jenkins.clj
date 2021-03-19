@@ -43,5 +43,5 @@
 (defn run [options]
   (let [jenkins-options (merge options
                                (parse-options (:action-args options)))]
-    (sync/sync-builds-v2 jenkins-options
-                         #(builds/jenkins-builds jenkins-options))))
+    (sync/sync-builds jenkins-options
+                      #(builds/jenkins-builds jenkins-options))))

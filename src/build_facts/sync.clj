@@ -54,39 +54,6 @@
     (->> builds
          (map fn))))
 
-(defn- write-state-legacy [state-file-path last-build]
-  (when state-file-path
-    (spit state-file-path
-          (json/to-string {:last-build-start (:start last-build)}))))
-
-(defn- read-state-legacy [state-file-path]
-  (when state-file-path
-    (let [state-file (io/file state-file-path)]
-      (when (.exists state-file)
-        (json/from-string (slurp state-file-path))))))
-
-(defn sync-builds [{:keys [base-url
-                           user-sync-start-time
-                           output
-                           splunkFormat?
-                           state-file-path]}
-                   fetch-builds]
-  (let [state-last-sync-time (when-let [unix-time (:last-build-start (read-state-legacy state-file-path))]
-                               (tc/from-long unix-time))
-        sync-start-time (or state-last-sync-time
-                            user-sync-start-time
-                            two-months-ago)
-        console? (some? output)]
-    (log console? (format "Finding all builds for syncing from %s (starting from %s)..."
-                          base-url
-                          (tf/unparse (:date-time tf/formatters) sync-start-time)))
-
-    (some->> (fetch-builds sync-start-time)
-             (with-progress console? #(output! output splunkFormat? %))
-             latest-build
-             (write-state-legacy state-file-path))))
-
-
 (defn- build-recent? [{start :start} sync-start-time]
   (or (nil? start)
       (t/after? (tc/from-long start) sync-start-time)))
@@ -127,12 +94,12 @@
     (spit state-file-path (j/generate-string state))))
 
 
-(defn sync-builds-v2 [{:keys [base-url
-                              user-sync-start-time
-                              state-file-path
-                              splunkFormat?
-                              output]}
-                      fetch-builds]
+(defn sync-builds [{:keys [base-url
+                           user-sync-start-time
+                           state-file-path
+                           splunkFormat?
+                           output]}
+                   fetch-builds]
   (let [state (read-state state-file-path)
         sync-start-time (or user-sync-start-time
                             two-months-ago)
