@@ -42,10 +42,9 @@
 (defn- a-stage-run
   ([stage-name stage-run] {:name stage-name
                            :counter stage-run})
-  ([pipeline-run stage-run result & jobs] {:pipeline_counter pipeline-run
-                                           :counter stage-run
-                                           :result result
-                                           :jobs jobs}))
+  ([pipeline-run stage-run & jobs] {:pipeline_counter pipeline-run
+                                    :counter stage-run
+                                    :jobs jobs}))
 
 (defn- a-short-history [pipeline-name stage-name & stage-runs]
   [[(format "http://gocd:8513/api/stages/%s/%s/history/0" pipeline-name stage-name)
@@ -100,6 +99,13 @@
   [[(format "http://gocd:8513/api/jobs/%s.xml" job-id)
     (successful-response (build-properties content))]])
 
+(defn- no-build-properties [job-id]
+  [[(format "http://gocd:8513/api/jobs/%s.xml" job-id)
+    (successful-response (xml/emit-str (xml/element
+                                        :job {}
+                                        (xml/element
+                                         :properties {} []))))]])
+
 (defn- a-file-list [pipeline-name pipeline-run stage-name stage-run build-name & files]
   [[(format "http://gocd:8513/files/%s/%s/%s/%s/%s.json"
             pipeline-name pipeline-run stage-name stage-run build-name)
@@ -110,30 +116,33 @@
             pipeline-name pipeline-run stage-name stage-run build-name file-path)
     (successful-response content)]])
 
+(defn- no-file-list [pipeline-name pipeline-run stage-name stage-run build-name]
+  [[(format "http://gocd:8513/files/%s/%s/%s/%s/%s.json"
+            pipeline-name pipeline-run stage-name stage-run build-name)
+    (fn [_] {:status 404})]])
+
 (defn- serve-up [& routes]
   (->> routes
        (mapcat identity)
        (into {})))
-
-(def beginning-of-2016 (t/date-time 2016 1 1))
 
 
 (deftest test-gocd-builds
   (testing "should handle no pipeline groups"
     (fake/with-fake-routes-in-isolation (serve-up (a-config))
       (is (empty? (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-groups nil} beginning-of-2016)))))
+                                    :pipeline-groups nil})))))
 
   (testing "should handle empty pipeline group"
     (fake/with-fake-routes-in-isolation (serve-up (a-config (a-pipeline-group "Development")))
       (is (empty? (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-groups nil} beginning-of-2016)))))
+                                    :pipeline-groups nil})))))
 
   (testing "should handle empty pipeline"
     (fake/with-fake-routes-in-isolation (serve-up (a-config (a-pipeline-group "Development"
                                                                               (a-pipeline "Build"))))
       (is (empty? (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-groups nil} beginning-of-2016)))))
+                                    :pipeline-groups nil})))))
 
   (testing "should sync a stage"
     (fake/with-fake-routes-in-isolation
@@ -141,7 +150,7 @@
                                             (a-pipeline "Build"
                                                         (a-stage "DoStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1493201298062 321)))
                 (a-pipeline-run "Build" 42
                                 [(a-stage-run "DoStuff" "1")]
@@ -152,15 +161,15 @@
                                       :outcome "Passed"
                                       :actual-stage-run "1"})
                 (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
-      (is (= '({:job-name "Build :: DoStuff"
-                :build-id "42"
-                :start 1483264800000
-                :end 1483272000000
-                :outcome "pass"
-                :inputs [{:revision "AnotherPipeline/21", :sourceId "7"}]})
+      (is (= [["Build :: DoStuff"
+               [{:job-name "Build :: DoStuff"
+                 :build-id "42"
+                 :start 1483264800000
+                 :end 1483272000000
+                 :outcome "pass"
+                 :inputs [{:revision "AnotherPipeline/21", :sourceId "7"}]}]]]
              (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                               :pipeline-groups nil}
-                              beginning-of-2016)))))
+                               :pipeline-groups nil})))))
 
   (testing "should only sync given pipeline groups"
     (fake/with-fake-routes-in-isolation
@@ -171,10 +180,10 @@
                                             (a-pipeline "SomePipeline"
                                                         (a-stage "SomeStage"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1493201298062 321)))
                 (a-short-history "SomePipeline" "SomeStage"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "SomeJob" 1493201298062 456)))
                 (a-pipeline-run "Build" 42
                                 [(a-stage-run "DoStuff" "1")])
@@ -194,9 +203,8 @@
                 (a-file-list "SomePipeline" 42 "SomeStage" "1" "SomeJob"))
       (is (= '("Build :: DoStuff")
              (->> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-groups '("Development")}
-                                   beginning-of-2016)
-                  (map :job-name))))))
+                                    :pipeline-groups '("Development")})
+                  (map first))))))
 
   (testing "should sync a build trigger from another pipeline"
     (fake/with-fake-routes-in-isolation
@@ -204,7 +212,7 @@
                                             (a-pipeline "Build"
                                                         (a-stage "DoStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1493201298062 321)))
                 (a-pipeline-run "Build" 42
                                 [(a-stage-run "DoStuff" "1")]
@@ -215,13 +223,11 @@
                                       :outcome "Passed"
                                       :actual-stage-run "1"})
                 (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
-      (is (= [{:job-name "AnotherPipeline :: AnotherStage"
+      (let [[[_ [build]]] (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
+                                            :pipeline-groups nil})]
+        (is (= [{:job-name "AnotherPipeline :: AnotherStage"
                :build-id "21 (Run 2)"}]
-             (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                   :pipeline-groups nil}
-                                  beginning-of-2016)
-                 first
-                 :triggered-by)))))
+               (:triggered-by build))))))
 
   (testing "should not sync a forced build trigger"
     (fake/with-fake-routes-in-isolation
@@ -229,18 +235,16 @@
                                             (a-pipeline "Build"
                                                         (a-stage "DoStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1493201298062 321)))
                 (a-forced-pipeline-run "Build" 42
                                        [(a-stage-run "DoStuff" "1")]
                                        (a-pipeline-build-cause 7 "AnotherPipeline" 21 "AnotherStage" 2))
                 (a-builds-properties 321 {})
                 (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
-      (is (nil? (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                      :pipeline-groups nil}
-                                     beginning-of-2016)
-                    first
-                    :triggered-by)))))
+      (let [[[_ [build]]] (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
+                                            :pipeline-groups nil})]
+        (is (nil? (:triggered-by build))))))
 
   (testing "should not count a source revision cause as pipeline trigger"
     (fake/with-fake-routes-in-isolation
@@ -248,7 +252,7 @@
                                             (a-pipeline "Build"
                                                         (a-stage "DoStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1493201298062 321)))
                 (a-pipeline-run "Build" 42
                                 [(a-stage-run "DoStuff" "1")]
@@ -259,11 +263,9 @@
                                       :outcome "Passed"
                                       :actual-stage-run "1"})
                 (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
-      (is (nil? (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                      :pipeline-groups nil}
-                                     beginning-of-2016)
-                    first
-                    :triggered-by)))))
+      (let [[[_ [build]]] (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
+                                            :pipeline-groups nil})]
+        (is (nil? (:triggered-by build))))))
 
   (testing "should only sync build trigger from pipeline material for first stage"
     (fake/with-fake-routes-in-isolation
@@ -272,10 +274,10 @@
                                                         (a-stage "DoStuff")
                                                         (a-stage "MoreStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1483261200000 321)))
                 (a-short-history "Build" "MoreStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "defaultJob" 1483268400099 4711)))
                 (a-pipeline-run "Build" 42
                                 [(a-stage-run "DoStuff" "1") (a-stage-run "MoreStuff" "1")]
@@ -287,16 +289,19 @@
       (let [pipeline-trigger {:job-name "AnotherPipeline :: AnotherStage"
                               :build-id "21 (Run 2)"}
             builds (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                     :pipeline-groups nil}
-                                    beginning-of-2016)]
+                                     :pipeline-groups nil})]
         (is (some #(= pipeline-trigger %)
-                  (-> (filter #(= (:job-name %) "Build :: DoStuff") builds)
-                      first
-                      :triggered-by)))
+                  (->> builds
+                       (filter #(= (first %) "Build :: DoStuff"))
+                       (map (fn [[_ [build]]] build))
+                       first
+                       :triggered-by)))
         (is (nil? (some #(= pipeline-trigger %)
-                        (-> (filter #(= (:job-name %) "Build :: MoreStuff") builds)
-                            first
-                            :triggered-by)))))))
+                        (->> builds
+                             (filter #(= (first %) "Build :: MoreStuff"))
+                             (map (fn [[_ [build]]] build))
+                             first
+                             :triggered-by)))))))
 
   (testing "should sync build trigger from stage of same pipeline"
     (fake/with-fake-routes-in-isolation
@@ -305,10 +310,10 @@
                                                         (a-stage "DoStuff")
                                                         (a-stage "MoreStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1483261200000 321)))
                 (a-short-history "Build" "MoreStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "defaultJob" 1483268400099 4711)))
                 (a-pipeline-run "Build" 42
                                 [(a-stage-run "DoStuff" "1") (a-stage-run "MoreStuff" "1")])
@@ -327,9 +332,9 @@
       (is (= [{:job-name "Build :: DoStuff"
                :build-id "42"}]
              (->> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-groups nil}
-                                   beginning-of-2016)
-                  (filter #(= (:job-name %) "Build :: MoreStuff"))
+                                    :pipeline-groups nil})
+                  (filter #(= (first %) "Build :: MoreStuff"))
+                  (map (fn [[_ [build]]] build))
                   first
                   :triggered-by)))))
 
@@ -339,7 +344,7 @@
                                             (a-pipeline "Build"
                                                         (a-stage "DoStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "2" "Passed"
+                                 (a-stage-run 42 "2"
                                               (a-job-run "AlphaJob" 1493201298062 321)))
                 (a-pipeline-run "Build" 42 [(a-stage-run "DoStuff" "1")])
                 (a-builds-properties 321
@@ -347,13 +352,11 @@
                                       :end-time (t/date-time 2017 1 1 12 0)
                                       :outcome "Passed"
                                       :actual-stage-run "2"})
-                (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
-      (is (= "42 (Run 2)"
-             (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                   :pipeline-groups nil}
-                                  beginning-of-2016)
-                 first
-                 :build-id)))))
+                (a-file-list "Build" 42 "DoStuff" "2" "AlphaJob"))
+      (let [[[_ [build]]] (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
+                                            :pipeline-groups nil})]
+        (is (= "42 (Run 2)"
+               (:build-id build))))))
 
   (testing "should not sync build trigger for re-run of stage"
     (fake/with-fake-routes-in-isolation
@@ -362,10 +365,10 @@
                                                         (a-stage "DoStuff")
                                                         (a-stage "MoreStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1483261200000 321)))
                 (a-short-history "Build" "MoreStuff"
-                                 (a-stage-run 42 "2" "Passed"
+                                 (a-stage-run 42 "2"
                                               (a-job-run "defaultJob" 1483268400099 4711)))
                 (a-pipeline-run "Build" 42
                                 [(a-stage-run "DoStuff" "1") (a-stage-run "MoreStuff" "2")])
@@ -380,11 +383,11 @@
                                       :outcome "Passed"
                                       :actual-stage-run "1"})
                 (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob")
-                (a-file-list "Build" 42 "MoreStuff" "1" "defaultJob"))
+                (a-file-list "Build" 42 "MoreStuff" "2" "defaultJob"))
       (is (nil? (->> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                       :pipeline-groups nil}
-                                      beginning-of-2016)
-                     (filter #(= (:job-name %) "Build :: MoreStuff"))
+                                       :pipeline-groups nil})
+                     (filter #(= (first %) "Build :: MoreStuff"))
+                     (map (fn [[_ [build]]] build))
                      first
                      :triggered-by)))))
 
@@ -394,7 +397,7 @@
                                             (a-pipeline "Build"
                                                         (a-stage "DoStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Failed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1493201298062 321)))
                 (a-pipeline-run "Build" 42 [(a-stage-run "DoStuff" "1")])
                 (a-builds-properties 321
@@ -403,72 +406,34 @@
                                       :outcome "Failed"
                                       :actual-stage-run "1"})
                 (a-file-list "Build" 42 "DoStuff" "1" "AlphaJob"))
-      (is (= '({:job-name "Build :: DoStuff"
-                :build-id "42"
-                :start 1483264800000
-                :end 1483272000000
-                :outcome "fail"
-                :inputs []})
+      (is (= [["Build :: DoStuff"
+               [{:job-name "Build :: DoStuff"
+                 :build-id "42"
+                 :start 1483264800000
+                 :end 1483272000000
+                 :outcome "fail"
+                 :inputs []}]]]
              (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                               :pipeline-groups nil}
-                              beginning-of-2016)))))
+                               :pipeline-groups nil})))))
 
-  (testing "should ignore an ongoing stage"
+  (testing "should support an ongoing stage"
     (fake/with-fake-routes-in-isolation
       (serve-up (a-config (a-pipeline-group "Development"
                                             (a-pipeline "Build"
                                                         (a-stage "DoStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Unknown"
-                                              (a-job-run "AlphaJob" 1493201298062 321))))
-      (is (empty? (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-groups nil}
-                                   beginning-of-2016)))))
-
-  (testing "should ignore a stage who's job ran before the sync date offset"
-    (fake/with-fake-routes-in-isolation
-      (serve-up (a-config (a-pipeline-group "Development"
-                                            (a-pipeline "Build"
-                                                        (a-stage "DoStuff"))))
-                (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
-                                              (a-job-run "AlphaJob"
-                                                         (- (tc/to-long beginning-of-2016)
-                                                            2)
-                                                         321)
-                                              (a-job-run "BetaJob"
-                                                         (+ (tc/to-long beginning-of-2016)
-                                                            9001)
-                                                         987))))
-      (is (empty? (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-groups nil}
-                                   beginning-of-2016)))))
-
-  (testing "should only sync stage of pipeline that's after the sync date offset"
-    (fake/with-fake-routes-in-isolation
-      (serve-up (a-config (a-pipeline-group "Development"
-                                            (a-pipeline "Build"
-                                                        (a-stage "DoStuff")
-                                                        (a-stage "SomeMore"))))
-                (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
-                                              (a-job-run "AlphaJob"
-                                                         (- (tc/to-long beginning-of-2016)
-                                                            2)
-                                                         321)))
-                (a-short-history "Build" "SomeMore"
-                                 (a-stage-run 42 "1" "Passed"
-                                              (a-job-run "SomeJob"
-                                                         (tc/to-long beginning-of-2016)
-                                                         987)))
+                                 (a-stage-run 42 "1"
+                                              (a-job-run "AlphaJob" 1493201298062 321)))
                 (a-pipeline-run "Build" 42 [(a-stage-run "DoStuff" "1")])
-                (a-builds-properties 987 {})
-                (a-file-list "Build" 42 "SomeMore" "1" "SomeJob"))
-      (is (= '("Build :: SomeMore")
-             (->> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                    :pipeline-groups nil}
-                                   beginning-of-2016)
-                  (map :job-name))))))
+                (no-build-properties 321)
+                (no-file-list "Build" 42 "DoStuff" 1 "AlphaJob"))
+      (is (= [["Build :: DoStuff"
+               [{:job-name "Build :: DoStuff"
+                 :build-id "42"
+                 :outcome "ongoing"
+                 :inputs []}]]]
+             (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
+                               :pipeline-groups nil})))))
 
   (testing "should sync test results"
     (fake/with-fake-routes-in-isolation
@@ -476,7 +441,7 @@
                                             (a-pipeline "Build"
                                                         (a-stage "DoStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1493201298062 321)))
                 (a-pipeline-run "Build" 42 [(a-stage-run "DoStuff" "1")])
                 (a-builds-properties 321 {})
@@ -487,16 +452,14 @@
                                        :url "http://example.com/something/files/Build/42/DoStuff/1/AlphaJob/tmp/results.xml"}]})
                 (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/results.xml"
                         "<testsuite name=\"my-suite\"><testcase classname=\"my-class\" name=\"my-name\" time=\"0.042\"/></testsuite>"))
-      (is (= '({:name "my-suite"
+      (let [[[_ [build]]] (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
+                                            :pipeline-groups nil})]
+        (is (= '({:name "my-suite"
                 :children ({:classname "my-class"
                             :name "my-name"
                             :runtime 42
                             :status "pass"})})
-             (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                   :pipeline-groups nil}
-                                  beginning-of-2016)
-                 first
-                 :test-results)))))
+               (:test-results build))))))
 
   (testing "should sync multiple test results in one job"
     (fake/with-fake-routes-in-isolation
@@ -504,7 +467,7 @@
                                             (a-pipeline "Build"
                                                         (a-stage "DoStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1493201298062 321)))
                 (a-pipeline-run "Build" 42 [(a-stage-run "DoStuff" "1")])
                 (a-builds-properties 321 {})
@@ -517,15 +480,13 @@
                         "<testsuite name=\"one\"></testsuite>")
                 (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "others.xml"
                         "<testsuites><testsuite name=\"other\"></testsuite></testsuites>"))
-      (is (= '({:name "one"
-                :children []}
-               {:name "other"
-                :children []})
-             (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                   :pipeline-groups nil}
-                                  beginning-of-2016)
-                 first
-                 :test-results)))))
+      (let [[[_ [build]]] (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
+                                            :pipeline-groups nil})]
+        (is (= '({:name "one"
+                  :children []}
+                 {:name "other"
+                  :children []})
+               (:test-results build))))))
 
   (testing "should combine test results for two jobs"
     (fake/with-fake-routes-in-isolation
@@ -533,7 +494,7 @@
                                             (a-pipeline "Build"
                                                         (a-stage "DoStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1493201298062 321)
                                               (a-job-run "BetaJob" 1493201298062 987)))
                 (a-pipeline-run "Build" 42 [(a-stage-run "DoStuff" "1")])
@@ -549,15 +510,13 @@
                         "<testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>")
                 (a-file "Build" 42 "DoStuff" "1" "BetaJob" "tmp/results.xml"
                         "<testsuites><testsuite name=\"Beta\"></testsuite></testsuites>"))
-      (is (= '({:name "Alpha"
-                :children []}
-               {:name "Beta"
-                :children []})
-             (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                   :pipeline-groups nil}
-                                  beginning-of-2016)
-                 first
-                 :test-results)))))
+      (let [[[_ [build]]] (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
+                                            :pipeline-groups nil})]
+        (is (= '({:name "Alpha"
+                  :children []}
+                 {:name "Beta"
+                  :children []})
+               (:test-results build))))))
 
   (testing "should store test results even if one job has no XML"
     (fake/with-fake-routes-in-isolation
@@ -565,7 +524,7 @@
                                             (a-pipeline "Build"
                                                         (a-stage "DoStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1493201298062 321)
                                               (a-job-run "BetaJob" 1493201298062 987)))
                 (a-pipeline-run "Build" 42 [(a-stage-run "DoStuff" "1")])
@@ -577,13 +536,11 @@
                 (a-file-list "Build" 42 "DoStuff" "1" "BetaJob")
                 (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/results.xml"
                         "<testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>"))
-      (is (= '({:name "Alpha"
-                :children []})
-             (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                   :pipeline-groups nil}
-                                  beginning-of-2016)
-                 first
-                 :test-results)))))
+      (let [[[_ [build]]] (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
+                                            :pipeline-groups nil})]
+        (is (= '({:name "Alpha"
+                  :children []})
+               (:test-results build))))))
 
   (testing "should not include non-JUnit-XML file"
     (fake/with-fake-routes-in-isolation
@@ -591,7 +548,7 @@
                                             (a-pipeline "Build"
                                                         (a-stage "DoStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1493201298062 321)))
                 (a-pipeline-run "Build" 42 [(a-stage-run "DoStuff" "1")])
                 (a-builds-properties 321 {})
@@ -604,13 +561,11 @@
                         "<?xml version=\"1.0\" encoding=\"UTF-8\"?><someNode><contentNode></contentNode></someNode>")
                 (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/results.xml"
                         "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <!-- comments are fine -->  <testsuites><testsuite name=\"Alpha\"></testsuite></testsuites>"))
-      (is (= '({:name "Alpha"
-                :children []})
-             (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                   :pipeline-groups nil}
-                                  beginning-of-2016)
-                 first
-                 :test-results)))))
+      (let [[[_ [build]]] (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
+                                            :pipeline-groups nil})]
+        (is (= '({:name "Alpha"
+                  :children []})
+               (:test-results build))))))
 
   (testing "should not error on invalid JUnit XML"
     (fake/with-fake-routes-in-isolation
@@ -618,7 +573,7 @@
                                             (a-pipeline "Build"
                                                         (a-stage "DoStuff"))))
                 (a-short-history "Build" "DoStuff"
-                                 (a-stage-run 42 "1" "Passed"
+                                 (a-stage-run 42 "1"
                                               (a-job-run "AlphaJob" 1493201298062 321)))
                 (a-pipeline-run "Build" 42 [(a-stage-run "DoStuff" "1")])
                 (a-builds-properties 321 {})
@@ -631,8 +586,6 @@
                         "<testsuite name=\"valid-suite\"/>")
                 (a-file "Build" 42 "DoStuff" "1" "AlphaJob" "tmp/problematic-results.xml"
                         "<testsuite name=\"invalid-suite\"><testcase "))
-      (is (nil? (-> (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
-                                      :pipeline-groups nil}
-                                     beginning-of-2016)
-                    first
-                    :test-results))))))
+      (let [[[_ [build]]] (sut/gocd-builds {:base-url (url/url "http://gocd:8513")
+                                            :pipeline-groups nil})]
+        (is (nil? (:test-results build)))))))

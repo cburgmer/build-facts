@@ -65,14 +65,16 @@
                         first
                         :content)
         result (property-value-for properties "cruise_job_result")]
-    (when-not (= "Unknown" result)
-      (let [start-time (parse-datetime (property-value-for properties "cruise_timestamp_04_building"))
-            end-time (parse-datetime (property-value-for properties "cruise_timestamp_06_completed"))
-            actual-stage-run (property-value-for properties "cruise_stage_counter")
-            outcome (if (= "Passed" result) "pass" "fail")]
-        (assoc (build-times start-time end-time)
-               :outcome outcome
-               :actual-stage-run actual-stage-run)))))
+    (let [start-time (parse-datetime (property-value-for properties "cruise_timestamp_04_building"))
+          end-time (parse-datetime (property-value-for properties "cruise_timestamp_06_completed"))
+          actual-stage-run (property-value-for properties "cruise_stage_counter")
+          outcome (case result
+                    "Passed" "pass"
+                    "Failed" "fail"
+                    "ongoing")]
+      (assoc (build-times start-time end-time)
+             :outcome outcome
+             :actual-stage-run actual-stage-run))))
 
 (defn build-for [go-url job-id]
   (let [build-properties (get-plain go-url (templ/uritemplate "/api/jobs{/id}.xml"
@@ -96,7 +98,7 @@
                 (lazy-seq (get-stage-instances go-url pipeline stage-name next-offset)))))))
 
 (defn get-stage-history [go-url pipeline stage]
-  (get-stage-instances go-url pipeline stage 0))
+  (lazy-seq (get-stage-instances go-url pipeline stage 0))) ; don't do an api call yet, helps the progress bar to render early
 
 
 ;; /go/api/pipelines/:pipeline_name/instance/:pipeline_counter
@@ -155,9 +157,9 @@
         (log/errorf e "Unable to parse artifact list for %s" artifacts-url))
       (catch Exception e
         (if-let [data (ex-data e)]
-          (log/errorf "Unable to get artifact list from %s (status %s): %s"
-                      artifacts-url (:status data) (:body data))
-          (log/errorf e "Unable to get artifact list from %s" artifacts-url))))))
+          (log/infof "Unable to get artifact list from %s (status %s): %s"
+                     artifacts-url (:status data) (:body data))
+          (throw e))))))
 
 (defn- xml-artifacts-for-job-run [go-url job-instance]
   (when-let [file-tree (try-get-artifact-tree go-url job-instance)]

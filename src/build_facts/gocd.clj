@@ -50,5 +50,5 @@
 (defn run [options]
   (let [gocd-options (merge options
                             (parse-options (:action-args options)))]
-    (sync/sync-builds gocd-options
-                      #(builds/gocd-builds gocd-options %))))
+    (sync/sync-builds-v2 gocd-options
+                         #(builds/gocd-builds gocd-options))))

@@ -4,7 +4,7 @@
             [clojure.tools.logging :as log])
   (:import [javax.xml.stream XMLStreamException]))
 
-(defn- get-job-name [pipeline-name stage-name]
+(defn get-job-name [pipeline-name stage-name]
   (format "%s :: %s" pipeline-name stage-name))
 
 (defn- get-build-id [pipeline-run stage-run]
@@ -77,7 +77,9 @@
   (let [outcomes (map :outcome job-instances)
         accumulated-outcome (if (every? #(= "pass" %) outcomes)
                               "pass"
-                              "fail")]
+                              (if (some #(= "ongoing" %) outcomes)
+                                "ongoing"
+                                "fail"))]
     (-> job-instances
         (ignore-old-runs-for-rerun-stages stage-run)
         aggregate-build-times
