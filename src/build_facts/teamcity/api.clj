@@ -57,7 +57,7 @@
                 (get-builds-from teamcity-url job-id next-offset))))))
 
 (defn get-builds [teamcity-url job-id]
-  (get-builds-from teamcity-url job-id 0))
+  (lazy-seq (get-builds-from teamcity-url job-id 0))) ; don't do an api call yet, helps the progress bar to render early
 
 
 (def ^:private test-occurrence-paging-count 10000)

@@ -5,7 +5,7 @@
             [build-facts.teamcity.transform-testresults :refer [convert-test-results]]
             [clojure.string :as str]))
 
-(defn- full-job-name [project-name job-name]
+(defn full-job-name [project-name job-name]
   (format "%s %s" project-name job-name))
 
 (defn parse-build-date [date-str]

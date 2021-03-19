@@ -3,9 +3,7 @@
             [build-facts.util.url :as url]
             [cheshire.core :as j]
             [clj-http.fake :as fake]
-            [clj-time
-             [coerce :as tc]
-             [core :as t]]
+            [clj-time.core :as t]
             [clojure.test :refer :all]))
 
 (defn- successful-json-response [body]
@@ -47,8 +45,6 @@
            build-id)
    (successful-json-response {:testOccurrence []})])
 
-(def beginning-of-2016 (t/date-time 2016 1 1))
-
 (defn- serve-up [& routes]
   (into {} routes))
 
@@ -62,100 +58,61 @@
                                                                                  :startDate "20160410T041049+0000"
                                                                                  :finishDate "20160410T041100+0000"})
                                                   (no-test-occurences "theJobId" 42))
-      (is (= {:job-name "theProject theJob #1"
-              :build-id "2"
-              :start 1460261449000
-              :end 1460261460000
-              :outcome "pass"}
-             (first (sut/teamcity-builds {:base-url (url/url "http://teamcity:8000")
-                                          :projects ["the_project"]} beginning-of-2016))))))
+      (is (= [["theProject theJob #1"
+               [{:job-name "theProject theJob #1"
+                 :build-id "2"
+                 :start 1460261449000
+                 :end 1460261460000
+                 :outcome "pass"}]]]
+             (sut/teamcity-builds {:base-url (url/url "http://teamcity:8000")
+                                   :projects ["the_project"]})))))
 
-  (testing "should sync in ascending order by date"
+  (testing "should sync multiple jobs"
     (fake/with-fake-routes-in-isolation (serve-up (a-project "the_project"
                                                              (a-job "jobId1" "theProject" "job1")
                                                              (a-job "jobId2" "theProject" "job2"))
                                                   (a-job-with-builds "jobId1"
                                                                      {:id 12
-                                                                      :number 11
+                                                                      :number "11"
                                                                       :startDate "20160410T000300+0000"
                                                                       :finishDate "20160410T000400+0000"}
                                                                      {:id 10
-                                                                      :number 10
+                                                                      :number "10"
                                                                       :startDate "20160410T000000+0000"
                                                                       :finishDate "20160410T000100+0000"})
                                                   (no-test-occurences "jobId1" 12)
                                                   (no-test-occurences "jobId1" 10)
                                                   (a-job-with-builds "jobId2" {:id 20
-                                                                               :number 42
+                                                                               :number "42"
                                                                                :startDate "20160410T000100+0000"
                                                                                :finishDate "20160410T000200+0000"})
                                                   (no-test-occurences "jobId2" 20))
-      (is (= '({:job-name "theProject job1" :build-id 10}
-               {:job-name "theProject job2" :build-id 42}
-               {:job-name "theProject job1" :build-id 11})
-             (->> (sut/teamcity-builds {:base-url (url/url "http://teamcity:8000")
-                                         :projects ["the_project"]} beginning-of-2016)
-                  (map (fn [{:keys [job-name build-id]}] {:job-name job-name :build-id build-id})))))))
-
-  (testing "should stop at running build"
-    (fake/with-fake-routes-in-isolation (serve-up (a-project "the_project"
-                                                             (a-job "jobId1" "theProject" "job1"))
-                                                  (a-job-with-builds "jobId1"
-                                                                     {:id 12
-                                                                      :number 12
-                                                                      :state "finished"
-                                                                      :startDate "20160410T000400+0000"
-                                                                      :finishDate "20160410T000500+0000"}
-                                                                     {:id 11
-                                                                      :number 11
-                                                                      :state "running"
-                                                                      :startDate "20160410T000200+0000"
-                                                                      :finishDate "20160410T000300+0000"}
-                                                                     {:id 10
-                                                                      :number 10
-                                                                      :state "finished"
-                                                                      :startDate "20160410T000000+0000"
-                                                                      :finishDate "20160410T000100+0000"})
-                                                  (no-test-occurences "jobId1" 12)
-                                                  (no-test-occurences "jobId1" 11)
-                                                  (no-test-occurences "jobId1" 10))
-      (is (= '({:job-name "theProject job1" :build-id 10})
-             (->> (sut/teamcity-builds {:base-url (url/url "http://teamcity:8000")
-                                         :projects ["the_project"]} beginning-of-2016)
-                  (map (fn [{:keys [job-name build-id]}] {:job-name job-name :build-id build-id})))))))
-
-  (testing "should sync from given start date"
-    (let [build-start (t/from-time-zone (t/date-time 2016 4 10 0 2 0) t/utc)]
-      (fake/with-fake-routes-in-isolation (serve-up (a-project "the_project"
-                                                               (a-job "jobId1" "theProject" "job1"))
-                                                    (a-job-with-builds "jobId1"
-                                                                       {:id 12
-                                                                        :number 12
-                                                                        :startDate "20160410T000400+0000"
-                                                                        :finishDate "20160410T000500+0000"}
-                                                                       {:id 11
-                                                                        :number 11
-                                                                        :startDate "20160410T000200+0000"
-                                                                        :finishDate "20160410T000300+0000"}
-                                                                       {:id 10
-                                                                        :number 10
-                                                                        :startDate "20160410T000000+0000"
-                                                                        :finishDate "20160410T000100+0000"})
-                                                    (no-test-occurences "jobId1" 12)
-                                                    (no-test-occurences "jobId1" 11)
-                                                    (no-test-occurences "jobId1" 10))
-        (is (= '({:job-name "theProject job1" :build-id 11}
-                 {:job-name "theProject job1" :build-id 12})
-               (->> (sut/teamcity-builds {:base-url (url/url "http://teamcity:8000")
-                                           :projects ["the_project"]} build-start)
-                    (map (fn [{:keys [job-name build-id]}] {:job-name job-name :build-id build-id}))))))))
+      (is (= [["theProject job1"
+               [{:job-name "theProject job1"
+                 :build-id "11"
+                 :start 1460246580000
+                 :end 1460246640000
+                 :outcome "pass"}
+                {:job-name "theProject job1"
+                 :build-id "10"
+                 :start 1460246400000
+                 :end 1460246460000
+                 :outcome "pass"}]]
+              ["theProject job2"
+               [{:job-name "theProject job2"
+                 :build-id "42"
+                 :start 1460246460000
+                 :end 1460246520000
+                 :outcome "pass"}]]]
+             (sut/teamcity-builds {:base-url (url/url "http://teamcity:8000")
+                                   :projects ["the_project"]})))))
 
   (testing "should sync test results"
     (fake/with-fake-routes-in-isolation (serve-up (a-project "the_project"
                                                              (a-job "jobId1" "theProject" "job1"))
                                                   (a-job-with-builds "jobId1"
                                                                      {:id 10
-                                                                      :number 10
+                                                                      :number "10"
                                                                       :startDate "20160410T000000+0000"
                                                                       :finishDate "20160410T000100+0000"})
                                                   (some-test-occurences "jobId1"
@@ -163,15 +120,14 @@
                                                                         {:name "suite: class.the test"
                                                                          :status "SUCCESS"
                                                                          :duration 42}))
-      (is (= [{:name "suite"
-               :children [{:name "the test"
-                           :classname "class"
-                           :status "pass"
-                           :runtime 42}]}]
-             (-> (sut/teamcity-builds {:base-url (url/url "http://teamcity:8000")
-                                        :projects ["the_project"]} beginning-of-2016)
-                 first
-                 :test-results)))))
+      (let [[[_ [build]]] (sut/teamcity-builds {:base-url (url/url "http://teamcity:8000")
+                                                :projects ["the_project"]})]
+        (is (= [{:name "suite"
+                 :children [{:name "the test"
+                             :classname "class"
+                             :status "pass"
+                             :runtime 42}]}]
+               (:test-results build))))))
 
   (testing "should sync a sub project"
     (fake/with-fake-routes-in-isolation
@@ -181,12 +137,16 @@
                            (a-job "jobId1" "The Sub Project" "job1"))
                 (a-job-with-builds "jobId1"
                                    {:id 10
-                                    :number 10
+                                    :number "10"
                                     :status "SUCCESS"
                                     :startDate "20160410T041049+0000"
                                     :finishDate "20160410T041100+0000"})
                 (no-test-occurences "jobId1" 10))
-      (is (= '({:job-name "The Sub Project job1" :build-id 10})
-             (->> (sut/teamcity-builds {:base-url (url/url "http://teamcity:8000")
-                                         :projects ["the_project"]} beginning-of-2016)
-                  (map (fn [{:keys [job-name build-id]}] {:job-name job-name :build-id build-id}))))))))
+      (is (= [["The Sub Project job1"
+               [{:job-name "The Sub Project job1"
+                 :build-id "10"
+                 :outcome "pass"
+                 :start 1460261449000
+                 :end 1460261460000}]]]
+             (sut/teamcity-builds {:base-url (url/url "http://teamcity:8000")
+                                   :projects ["the_project"]}))))))
