@@ -21,8 +21,8 @@ Bring up a server (adapt with the desired build server)
 
 Sync data
 
-    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.2.0/build-facts-0.2.0-standalone.jar
-    $ java -jar build-facts-0.2.0-standalone.jar jenkins http://localhost:8080
+    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.3.0/build-facts-0.3.0-standalone.jar
+    $ java -jar build-facts-0.3.0-standalone.jar jenkins http://localhost:8080
 
 Stop a server
 
@@ -47,6 +47,6 @@ Sync data from the build server into Splunk
 
     while read event; do
       curl -d "$event" -k -H "Authorization: Splunk 1234567890qwertyuiop" 'https://localhost:8088/services/collector'
-    done <<< "$(java -jar build-facts-0.2.0-standalone.jar jenkins http://localhost:8080 --splunk)"
+    done <<< "$(java -jar build-facts-0.3.0-standalone.jar jenkins http://localhost:8080 --splunk)"
 
 An example [dashboard exists](./splunk/dashboard.xml) and can be copied in via the "Source" edit mode.
