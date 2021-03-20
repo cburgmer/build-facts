@@ -52,7 +52,7 @@ goal_make_release() {
         sed -i "" "s/$OLD_VERSION_ESCAPED/$NEW_VERSION/g" examples/README.md
         sed -i "" "s/build-facts \"$OLD_VERSION_ESCAPED\"/build-facts \"$NEW_VERSION\"/" project.clj
 
-        git add README.md project.clj
+        git add README.md BUILD_SERVERS.md examples/README.md project.clj
         git commit -m "Bump version"
 
         ./lein clean
