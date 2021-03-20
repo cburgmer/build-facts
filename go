@@ -54,11 +54,16 @@ goal_make_release() {
 
         git add README.md project.clj
         git commit -m "Bump version"
+
+        ./lein clean
+        ./lein uberjar
+
         git show
         git tag "$NEW_VERSION"
         echo
         echo "You now want to"
         echo "$ git push origin master --tags"
+        echo "and upload the jar"
     )
 }
 
