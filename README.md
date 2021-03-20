@@ -35,6 +35,7 @@ the current set of build properties.
 | Jenkins      | ✓                      | ✓      | ✓            | ✓            |
 | TeamCity     | ✓                      | ✓      | ✓            | ✓            |
 
+See [BUILD_SERVERS.md](./BUILD_SERVERS.md) for detailed setup.
 
 ## JSON schema
 
@@ -70,8 +71,3 @@ Example:
 ## Examples
 
 This project ships with examples for every supported build server: [./examples](./examples/).
-
-## To do
-
-- Move over https://github.com/cburgmer/buildviz/wiki/CI-tool-integration
-- Don't sync past the earliest running build
