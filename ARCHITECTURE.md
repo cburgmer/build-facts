@@ -20,10 +20,11 @@ A few design decisions that went into build-facts:
 3. Syncing is designed to be resumable, so will favour dropping off once an
    ongoing build is found, so it can be picked up in finalised state later.
 
-4. We rely on the ordering of builds as returned by the build server. Builds
-   are then processed in reverse order as reported. This allows us to stop at an
-   ongoing build (see previous decision) but also makes us independent of any
-   timestamps that may or may not be present for builds in different states.
+4. We rely on the ordering of builds as returned by the build server (newest
+   first). Builds are then processed in reverse order as reported. This allows
+   us to stop at an ongoing build (see previous decision) but also makes us
+   independent of any timestamps that may or may not be present for builds in
+   different states.
 
 5. An implementation integrating a build server with build-facts has to fulfill
    a simple interface:
