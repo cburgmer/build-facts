@@ -1,3 +1,5 @@
+;; https://msdn.microsoft.com/en-us/library/aa365247(v=vs.85).aspx#naming_conventions
+
 (ns build-facts.safe-filenames
   (:require [clojure.string :as str]))
 

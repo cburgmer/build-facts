@@ -33,7 +33,7 @@
       (System/exit 1))
 
     (let [action (first (:arguments args))]
-      (shared/assert-parameter #(some? action) "The action is required. Try --help.")
+      (shared/assert-parameter #(some? action) "An action is required. Try --help.")
 
       (merge (:options args)
              {:action action
