@@ -5,6 +5,7 @@ readonly SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 readonly TMP_LOG="/tmp/run.$$.log"
 readonly COLLECTOR_BASE_URL="https://localhost:8088"
+readonly BASE_URL="http://localhost:8000"
 
 wait_for_server() {
     local url=$1
@@ -45,6 +46,7 @@ start_server() {
 
     wait_for_server "${COLLECTOR_BASE_URL}/services/collector/ack"
     echo " done"
+    echo "Started at ${BASE_URL}"
 }
 
 goal_start() {
