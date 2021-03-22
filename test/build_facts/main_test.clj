@@ -19,29 +19,31 @@
    :name job-name})
 
 (defn- all-jobs [& jobs]
-  [["http://concourse:8000/api/v1/jobs"
-    (successful-json-response jobs)]])
+  ["http://concourse:8000/api/v1/jobs"
+   (successful-json-response jobs)])
 
 (defn- some-builds-up-to [up-to-id team-name pipeline-name job-name & builds]
-  [[(format "http://concourse:8000/api/v1/teams/%s/pipelines/%s/jobs/%s/builds?to=%s"
-            team-name
-            pipeline-name
-            job-name
-            up-to-id)
-    (successful-json-response (map #(assoc % :pipeline_name pipeline-name :job_name job-name) builds))]])
+  [(format "http://concourse:8000/api/v1/teams/%s/pipelines/%s/jobs/%s/builds?to=%s"
+           team-name
+           pipeline-name
+           job-name
+           up-to-id)
+   (successful-json-response (map #(assoc % :pipeline_name pipeline-name :job_name job-name) builds))])
 
 (defn- some-builds [team-name pipeline-name job-name & builds]
   (apply some-builds-up-to (concat ["" team-name pipeline-name job-name] builds)))
 
+(defn- some-resources [build-id & inputs]
+  [(format "http://concourse:8000/api/v1/builds/%s/resources" build-id)
+   (successful-json-response {:inputs inputs})])
+
 (defn- valid-session []
-  [["http://concourse:8000/api/v1/user"
-    (successful-json-response {})]])
+  ["http://concourse:8000/api/v1/user"
+   (successful-json-response {})])
 
 
 (defn- serve-up [& routes]
-  (->> routes
-       (mapcat identity) ; flatten once
-       (into {})))
+  (into {} routes))
 
 (defn- unix-time-in-s [& params]
   (/ (tc/to-long (apply t/date-time params))
@@ -91,7 +93,8 @@
                                                                 :name "42"
                                                                 :status "succeeded"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4))
       (let [tmp-dir (create-tmp-dir "data")]
         (with-fake-flyrc tmp-dir
           (let [output (with-out-str
@@ -113,7 +116,8 @@
                                                                 :name "42"
                                                                 :status "succeeded"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4))
       (let [data-dir (create-tmp-dir "data")]
         (with-fake-flyrc data-dir
           (with-out-str
@@ -142,7 +146,8 @@
                                                                     :name "42"
                                                                     :status "succeeded"
                                                                     :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                    :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+                                                                    :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                      (some-resources 4))
           (with-out-str
             (with-no-err
               (sut/-main "concourse"
@@ -161,7 +166,9 @@
                                                                     :name "42"
                                                                     :status "succeeded"
                                                                     :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                    :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+                                                                    :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                      (some-resources 5)
+                                                      (some-resources 4))
           (= '({:jobName "my-pipeline my-job"
                 :buildId "43"
                 :outcome "pass"
@@ -183,7 +190,8 @@
                                                                 :name "42"
                                                                 :status "succeeded"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4))
       (let [tmp-dir (create-tmp-dir "data")]
         (with-fake-flyrc tmp-dir
           (let [output (with-out-str

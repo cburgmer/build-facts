@@ -26,9 +26,14 @@
                       concourse-target
                       concourse-target))))))
 
+(defn- with-resources [config {:keys [id] :as build}]
+  {:build build
+   :resources (api/build-resources config id)})
+
 (defn- builds-for-job [config {:keys [pipeline_name name] :as job}]
   [(transform/full-job-name pipeline_name name)
    (->> (api/all-builds-for-job config job)
+        (map #(with-resources config %))
         (map transform/concourse->build))])
 
 (defn concourse-builds [config]

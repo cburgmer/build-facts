@@ -34,6 +34,10 @@
 (defn- some-builds [team-name pipeline-name job-name & builds]
   (apply some-builds-up-to (concat ["" team-name pipeline-name job-name] builds)))
 
+(defn- some-resources [build-id & inputs]
+  [(format "http://concourse:8000/api/v1/builds/%s/resources" build-id)
+   (successful-json-response {:inputs inputs})])
+
 (defn- valid-session []
   ["http://concourse:8000/api/v1/user"
    (successful-json-response {})])
@@ -56,7 +60,8 @@
                                                                 :name "42"
                                                                 :status "succeeded"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
                                     :team-name "my-team"})
@@ -75,7 +80,8 @@
                                                                 :name "42"
                                                                 :status "failed"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
                                     :team-name "my-team"})
@@ -94,7 +100,8 @@
                                                                 :name "42"
                                                                 :status "started"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
                                     :team-name "my-team"})
@@ -109,9 +116,11 @@
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
                                                   (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
                                                   (some-builds "my-team" "my-pipeline" "my-job"
-                                                               {:name "42"
+                                                               {:id 4
+                                                                :name "42"
                                                                 :status "aborted"
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
                                     :team-name "my-team"})
@@ -126,10 +135,12 @@
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
                                                   (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
                                                   (some-builds "my-team" "my-pipeline" "my-job"
-                                                               {:name "42"
+                                                               {:id 4
+                                                                :name "42"
                                                                 :status "errored"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
                                     :team-name "my-team"})
@@ -145,15 +156,19 @@
                                                   (all-jobs (a-job "my-team" "my-pipeline" "my-job")
                                                             (a-job "another-team" "my-pipeline" "my-job"))
                                                   (some-builds "my-team" "my-pipeline" "my-job"
-                                                               {:name "42"
+                                                               {:id 4
+                                                                :name "42"
                                                                 :status "succeeded"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                   (some-builds "another-team" "my-pipeline" "my-job"
-                                                               {:name "43"
+                                                               {:id 10
+                                                                :name "43"
                                                                 :status "succeeded"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4)
+                                                  (some-resources 10))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
                                     :team-name "my-team"})
@@ -196,7 +211,10 @@
                                                                       :name "41"
                                                                       :status "succeeded"
                                                                       :start_time (unix-time-in-s 2016 1 1 2 0 0)
-                                                                      :end_time (unix-time-in-s 2016 1 1 2 0 1)}))
+                                                                      :end_time (unix-time-in-s 2016 1 1 2 0 1)})
+                                                  (some-resources 5)
+                                                  (some-resources 4)
+                                                  (some-resources 2))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
                                     :team-name "my-team"})
@@ -228,11 +246,13 @@
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                   (some-builds "my-team" "my-pipeline" "another-job"
-                                                               {:id 3
+                                                               {:id 10
                                                                 :name "10"
                                                                 :status "succeeded"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4)
+                                                  (some-resources 10))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
                                     :team-name "my-team"})
@@ -247,4 +267,25 @@
                   :build-id "10"
                   :outcome "pass"
                   :start 1451642400000
-                  :end 1451642401000}]]))))))
+                  :end 1451642401000}]])))))
+
+  (testing "shpuld expose inputs"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4
+                                                                  {:name "git"
+                                                                   :version {:ref "abcd1234"}}
+                                                                  {:name "version"
+                                                                   :version {:number "1113.0.0"}}))
+      (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
+                                                  :bearer-token "fake-token"
+                                                  :team-name "my-team"})]
+        (is (= [{:revision "abcd1234" :source-id "git[ref]"}
+                {:revision "1113.0.0" :source-id "version[number]"}]
+               (:inputs build)))))))

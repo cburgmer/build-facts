@@ -30,7 +30,7 @@ the current set of build properties.
 
 | Build server | Start, end and outcome | Inputs | Triggered by | Test results |
 | ------------ | ---------------------- | ------ | ------------ | ------------ |
-| Concourse    | ✓                      |        |              |              |
+| Concourse    | ✓                      | ✓      |              |              |
 | GoCD         | ✓                      | ✓      | ✓            | ✓            |
 | Jenkins      | ✓                      | ✓      | ✓            | ✓            |
 | TeamCity     | ✓                      | ✓      | ✓            | ✓            |
