@@ -31,7 +31,7 @@
                                      help-message))))))))
 
 (defn all-jobs [config]
-  (get-json "/api/v1/jobs" config))
+  (apply list (get-json "/api/v1/jobs" config))) ; https://github.com/dakrone/cheshire/issues/178
 
 (defn- builds-for-job [config {:keys [team_name pipeline_name name] :as job} up-to-id]
   (let [builds (get-json (templ/uritemplate "/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/builds?to={id}"
@@ -40,7 +40,7 @@
                                              "job_name" name
                                              "id" up-to-id})
                          config)]
-    (lazy-cat builds
+    (lazy-cat (apply list builds) ; https://github.com/dakrone/cheshire/issues/178
               (when (> (count builds) 1)
                 (let [last-build-id (:id (last builds))]
                   (remove #(= (:id %)

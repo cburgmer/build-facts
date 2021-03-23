@@ -235,6 +235,26 @@
                   :start 1451613600000
                   :end 1451613601000}]])))))
 
+  (testing "should resolve builds lazily"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}
+                                                               {:id 3
+                                                                :name "41"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 9 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 9 0 1)})
+                                                  (some-resources 4))
+      (let [[[_ builds]] (sut/concourse-builds {:base-url "http://concourse:8000"
+                                                :bearer-token "fake-token"
+                                                :team-name "my-team"})]
+        (first builds)))) ; should not error due to route for build #3 not defined
+
   (testing "should handle multiple jobs"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
                                                   (all-jobs (a-job "my-team" "my-pipeline" "my-job")
