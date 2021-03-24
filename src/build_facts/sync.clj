@@ -44,33 +44,30 @@
     (binding [*out* *err*]
       (println message))))
 
-(defn- with-progress [console? fn builds]
+(defn- run-with-progress! [console? fn builds]
   (if console?
     (->> builds
          (progress/init "Syncing")
          (map progress/tick)
-         (map fn)
+         (run! fn)
          progress/done)
     (->> builds
-         (map fn))))
+         (run! fn))))
 
 (defn- build-recent? [{start :start} sync-start-time]
   (or (nil? start)
       (t/after? (tc/from-long start) sync-start-time)))
 
-(defn- builds-for-job [[job-name builds] sync-start-time state splunkFormat? output]
+(defn- builds-for-job [job-name all-builds-for-job sync-start-time state]
   (let [last-sync-time (get-in state ["jobs" job-name "lastStart"])
         sync-start-time (or (when last-sync-time
                               (tc/from-long last-sync-time))
                             sync-start-time)]
-    [job-name
-     (->> builds
-          (take-while #(build-recent? % sync-start-time))
-          reverse
-          (take-while (fn [{outcome :outcome}] (or (= outcome "pass")
-                                                   (= outcome "fail"))))
-          (map #(output! output splunkFormat? %))
-          doall)]))
+    (->> all-builds-for-job
+         (take-while #(build-recent? % sync-start-time))
+         reverse
+         (take-while (fn [{outcome :outcome}] (or (= outcome "pass")
+                                                  (= outcome "fail")))))))
 
 (defn- read-state [state-file-path]
   (when state-file-path
@@ -93,13 +90,17 @@
   (when state-file-path
     (spit state-file-path (j/generate-string state))))
 
+(defn- builds-to-sync [sync-start-time state all-builds]
+  (map (fn [[job-name all-builds-for-job]]
+         [job-name (lazy-seq (builds-for-job job-name all-builds-for-job sync-start-time state))])
+       all-builds))
 
 (defn sync-builds [{:keys [base-url
                            user-sync-start-time
                            state-file-path
                            splunkFormat?
                            output]}
-                   fetch-builds]
+                   fetch-all-builds]
   (let [state (read-state state-file-path)
         sync-start-time (or user-sync-start-time
                             two-months-ago)
@@ -109,10 +110,11 @@
                     (format "Starting %s from %s..."
                             base-url
                             (tf/unparse (:date-time tf/formatters) user-sync-start-time))))
-    (let [synced-builds (->> (fetch-builds)
-                             (with-progress console? #(builds-for-job % sync-start-time state splunkFormat? output))
-                             doall)]
-      (->> synced-builds
+    (let [builds (builds-to-sync sync-start-time state (fetch-all-builds))]
+      (run-with-progress! console?
+                          (fn [[job-name builds]] (run! #(output! output splunkFormat? %) builds))
+                          builds)
+      (->> builds
            (update-state state)
            (write-state state-file-path))
-      (log console? (format "Synced %s builds" (count (mapcat (fn [[_ builds]] builds) synced-builds)))))))
+      (log console? (format "Synced %s builds" (count (mapcat (fn [[_ builds]] builds) builds)))))))
