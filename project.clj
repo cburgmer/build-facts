@@ -15,7 +15,7 @@
                  [clj-commons/clj-yaml "0.7.0"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/tools.cli "1.0.194"]
-                 [intervox/clj-progress "0.2.1"]
+                 [progrock "0.1.2"]
                  [uritemplate-clj "1.3.0"]
                  [wharf "0.2.0-20141115.032457-2"]]
   :main build-facts.main
