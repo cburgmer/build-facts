@@ -55,7 +55,12 @@ A few design decisions that went into build-facts:
 ## Syncing
 
 1. Every build server implementation provides a stream of endless builds per job.
-2. The sync strategy will select the matching window, implementing a unified
-   logic which builds to sync.
+    1. The first call will fetch all jobs.
+    2. For every job then all builds are lazily requested, with quasi endless
+       pagination.
+2. This two dimensional list of endless builds is passed into the syncing
+   strategy.
+3. The syncing strategy will serialise the process and by selecting the matching
+   window, load only the necessary builds per job.
 
 ![Sync strategy](./docs/sync_strategy.png)
