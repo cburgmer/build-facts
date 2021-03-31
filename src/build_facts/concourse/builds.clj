@@ -30,9 +30,15 @@
   {:build build
    :resources (api/build-resources config id)})
 
+(defn unchunk [s]
+  (when (seq s)
+    (cons (first s)
+          (lazy-seq (unchunk (next s))))))
+
 (defn- builds-for-job [config {:keys [pipeline_name name] :as job}]
   [(transform/full-job-name pipeline_name name)
    (->> (api/all-builds-for-job config job)
+        unchunk                              ; avoid triggering too many resource requests due to map's chunking for vectors
         (map #(with-resources config %))
         (map transform/concourse->build))])
 
