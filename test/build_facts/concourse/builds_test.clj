@@ -289,7 +289,7 @@
                   :start 1451642400000
                   :end 1451642401000}]])))))
 
-  (testing "shpuld expose inputs"
+  (testing "should expose inputs"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
                                                   (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
                                                   (some-builds "my-team" "my-pipeline" "my-job"
@@ -308,4 +308,12 @@
                                                   :team-name "my-team"})]
         (is (= [{:revision "abcd1234" :source-id "git[ref]"}
                 {:revision "1113.0.0" :source-id "version[number]"}]
-               (:inputs build)))))))
+               (:inputs build))))))
+
+  (testing "should make no requests for builds if they are not accessed"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job")))
+      ;; no expectation, implicitly tests by not failing from missing route
+      (first (sut/concourse-builds {:base-url "http://concourse:8000"
+                                    :bearer-token "fake-token"
+                                    :team-name "my-team"})))))

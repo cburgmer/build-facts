@@ -48,7 +48,7 @@
                           (builds-for-job config job last-build-id)))))))
 
 (defn all-builds-for-job [config job]
-  (lazy-seq (builds-for-job config job ""))) ; don't do an api call yet, helps the progress bar to render early
+  (builds-for-job config job ""))
 
 (defn build-resources [config build-id]
   (get-json (templ/uritemplate "/api/v1/builds/{id}/resources"

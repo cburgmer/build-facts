@@ -37,10 +37,11 @@
 
 (defn- builds-for-job [config {:keys [pipeline_name name] :as job}]
   [(transform/full-job-name pipeline_name name)
-   (->> (api/all-builds-for-job config job)
-        unchunk                              ; avoid triggering too many resource requests due to map's chunking for vectors
-        (map #(with-resources config %))
-        (map transform/concourse->build))])
+   (lazy-seq ; don't do an api call yet, helps the progress bar to render early
+    (->> (api/all-builds-for-job config job)
+         unchunk                              ; avoid triggering too many resource requests due to map's chunking for vectors
+         (map #(with-resources config %))
+         (map transform/concourse->build)))])
 
 (defn concourse-builds [config]
   (api/test-login config)
