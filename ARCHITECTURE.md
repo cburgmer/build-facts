@@ -50,3 +50,12 @@ A few design decisions that went into build-facts:
 8. Test results are represented as a simple JSON structure motivated by
    parameters captured by JUnit. We do not propagate nested test suites as
    supported by some systems in favour of keeping a simple, uniform structure.
+
+
+## Syncing
+
+1. Every build server implementation provides a stream of endless builds per job.
+2. The sync strategy will select the matching window, implementing a unified
+   logic which builds to sync.
+
+![Sync strategy](./docs/sync_strategy.png)
