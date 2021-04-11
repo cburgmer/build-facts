@@ -8,7 +8,8 @@ A few design decisions that went into build-facts:
    representation. We chose the abstractions of
 
     1. *jobs* which define how a build server executes a task, and
-    2. *builds* representing instances of the *jobs* being run.
+    2. *builds* representing instances of the *jobs* being run, and
+    3. *tasks*, pieces of work done within a *build*.
 
 2. We assume the build server is used for Continuous Integration (CI) or even
    Continuous Delivery (CD) and so we typically find

@@ -26,9 +26,10 @@
                       concourse-target
                       concourse-target))))))
 
-(defn- with-resources [config {:keys [id] :as build}]
+(defn- with-build-info [config {:keys [id] :as build}]
   {:build build
-   :resources (api/build-resources config id)})
+   :resources (api/build-resources config id)
+   :plan (api/build-plan config id)})
 
 (defn unchunk [s]
   (when (seq s)
@@ -40,7 +41,7 @@
    (lazy-seq ; don't do an api call yet, helps the progress bar to render early
     (->> (api/all-builds-for-job config job)
          unchunk                              ; avoid triggering too many resource requests due to map's chunking for vectors
-         (map #(with-resources config %))
+         (map #(with-build-info config %))
          (map transform/concourse->build)))])
 
 (defn concourse-builds [config]

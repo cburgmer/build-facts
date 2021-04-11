@@ -143,6 +143,31 @@
         },
         "additionalProperties": false
       }
+    },
+    "tasks": {
+      "type": "array",
+      "description": "Information on tasks run within the job",
+      "examples": [
+        [
+          {
+            "name": "deploy"
+          },
+          {
+            "name": "smoke-test"
+          }
+        ]
+      ],
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Unique name of the task"
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

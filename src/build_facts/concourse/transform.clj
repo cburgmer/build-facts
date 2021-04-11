@@ -32,7 +32,17 @@
 (defn- inputs-from [{inputs :inputs}]
   (map concourse-input->input inputs))
 
-(defn concourse->build [{build :build resources :resources}]
-  (let [inputs (seq (inputs-from resources))]
+(defn- tasks-from [plan]
+  (->> plan
+       (map (fn [entry] (if (:get entry)
+                          {:name (:name (:get entry))}
+                          (if (:on_success entry)
+                            {:name (:name (:put (:step (:on_success entry))))}
+                            {:name (:name (:task entry))}))))))
+
+(defn concourse->build [{:keys [build resources plan]}]
+  (let [inputs (seq (inputs-from resources))
+        tasks (seq (tasks-from plan))]
     (cond-> (build-from build)
-            inputs (assoc :inputs inputs))))
+      inputs (assoc :inputs inputs)
+      tasks (assoc :tasks tasks))))

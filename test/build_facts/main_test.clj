@@ -37,6 +37,10 @@
   [(format "http://concourse:8000/api/v1/builds/%s/resources" build-id)
    (successful-json-response {:inputs inputs})])
 
+(defn- some-plan [build-id & tasks]
+  [(format "http://concourse:8000/api/v1/builds/%s/plan" build-id)
+   (successful-json-response {:plan {:do tasks}})])
+
 (defn- valid-session []
   ["http://concourse:8000/api/v1/user"
    (successful-json-response {})])
@@ -94,7 +98,8 @@
                                                                 :status "succeeded"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
-                                                  (some-resources 4))
+                                                  (some-resources 4)
+                                                  (some-plan 4))
       (let [tmp-dir (create-tmp-dir "data")]
         (with-fake-flyrc tmp-dir
           (let [output (with-out-str
@@ -117,7 +122,8 @@
                                                                 :status "succeeded"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
-                                                  (some-resources 4))
+                                                  (some-resources 4)
+                                                  (some-plan 4))
       (let [data-dir (create-tmp-dir "data")]
         (with-fake-flyrc data-dir
           (with-out-str
@@ -147,7 +153,8 @@
                                                                     :status "succeeded"
                                                                     :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                     :end_time (unix-time-in-s 2016 1 1 10 0 1)})
-                                                      (some-resources 4))
+                                                      (some-resources 4)
+                                                      (some-plan 4))
           (with-out-str
             (with-no-err
               (sut/-main "concourse"
@@ -168,7 +175,9 @@
                                                                     :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                     :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                       (some-resources 5)
-                                                      (some-resources 4))
+                                                      (some-resources 4)
+                                                      (some-plan 5)
+                                                      (some-plan 4))
           (= '({:jobName "my-pipeline my-job"
                 :buildId "43"
                 :outcome "pass"
@@ -191,7 +200,8 @@
                                                                 :status "succeeded"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
-                                                  (some-resources 4))
+                                                  (some-resources 4)
+                                                  (some-plan 4))
       (let [tmp-dir (create-tmp-dir "data")]
         (with-fake-flyrc tmp-dir
           (let [output (with-out-str

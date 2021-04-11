@@ -54,3 +54,9 @@
   (get-json (templ/uritemplate "/api/v1/builds/{id}/resources"
                                {"id" build-id})
             config))
+
+(defn build-plan [config build-id]
+  (let [json (get-json (templ/uritemplate "/api/v1/builds/{id}/plan"
+                                          {"id" build-id})
+                       config)]
+    (:do (:plan json))))
