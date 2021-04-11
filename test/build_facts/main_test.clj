@@ -7,6 +7,7 @@
              [coerce :as tc]
              [core :as t]]
             [clojure.java.io :as io]
+            [clojure.string :as string]
             [clojure.test :refer :all]))
 
 (defn- successful-json-response [body]
@@ -40,6 +41,17 @@
 (defn- some-plan [build-id & tasks]
   [(format "http://concourse:8000/api/v1/builds/%s/plan" build-id)
    (successful-json-response {:plan {:do tasks}})])
+
+(defn- some-events [build-id & event-data]
+  (let [events (concat (map-indexed (fn [idx data]
+                                      (let [data-json (j/generate-string {:data data})]
+                                        (format "id: %s\nevent: event\ndata: %s" idx data-json)))
+                                    event-data)
+                       [(format "id: %s\nevent: end\ndata" (count event-data))
+                        ""])]
+    [(format "http://concourse:8000/api/v1/builds/%s/events" build-id)
+     (fn [_] {:status 200
+              :body (string/join "\n\n" events)})]))
 
 (defn- valid-session []
   ["http://concourse:8000/api/v1/user"
@@ -99,7 +111,8 @@
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                   (some-resources 4)
-                                                  (some-plan 4))
+                                                  (some-plan 4)
+                                                  (some-events 4))
       (let [tmp-dir (create-tmp-dir "data")]
         (with-fake-flyrc tmp-dir
           (let [output (with-out-str
@@ -123,7 +136,8 @@
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                   (some-resources 4)
-                                                  (some-plan 4))
+                                                  (some-plan 4)
+                                                  (some-events 4))
       (let [data-dir (create-tmp-dir "data")]
         (with-fake-flyrc data-dir
           (with-out-str
@@ -154,7 +168,8 @@
                                                                     :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                     :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                       (some-resources 4)
-                                                      (some-plan 4))
+                                                      (some-plan 4)
+                                                      (some-events 4))
           (with-out-str
             (with-no-err
               (sut/-main "concourse"
@@ -177,7 +192,9 @@
                                                       (some-resources 5)
                                                       (some-resources 4)
                                                       (some-plan 5)
-                                                      (some-plan 4))
+                                                      (some-plan 4)
+                                                      (some-events 5)
+                                                      (some-events 4))
           (= '({:jobName "my-pipeline my-job"
                 :buildId "43"
                 :outcome "pass"
@@ -201,7 +218,8 @@
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                   (some-resources 4)
-                                                  (some-plan 4))
+                                                  (some-plan 4)
+                                                  (some-events 4))
       (let [tmp-dir (create-tmp-dir "data")]
         (with-fake-flyrc tmp-dir
           (let [output (with-out-str

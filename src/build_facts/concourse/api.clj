@@ -1,5 +1,6 @@
 (ns build-facts.concourse.api
-  (:require [cheshire.core :as j]
+  (:require [build-facts.concourse.sse :as sse]
+            [cheshire.core :as j]
             [clojure.string :as string]
             [clj-http.client :as client]
             [uritemplate-clj.core :as templ]
@@ -60,3 +61,10 @@
                                           {"id" build-id})
                        config)]
     (:do (:plan json))))
+
+(defn build-events [{:keys [base-url bearer-token]} build-id]
+  (sse/events (string/join [base-url (templ/uritemplate "/api/v1/builds/{id}/events"
+                                                        {"id" build-id})])
+              {:headers {"User-Agent" "build-facts (https://github.com/cburgmer/build-facts)"
+                         "Authorization" (format "Bearer %s" bearer-token)}
+               :cookie-policy :standard}))

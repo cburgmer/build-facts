@@ -29,7 +29,10 @@
 (defn- with-build-info [config {:keys [id] :as build}]
   {:build build
    :resources (api/build-resources config id)
-   :plan (api/build-plan config id)})
+   :plan (api/build-plan config id)
+   :events (if (:experimental-events config)
+             (api/build-events config id)
+             [])})
 
 (defn unchunk [s]
   (when (seq s)
