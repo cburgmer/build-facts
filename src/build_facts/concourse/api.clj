@@ -63,8 +63,8 @@
     (:do (:plan json))))
 
 (defn build-events [{:keys [base-url bearer-token]} build-id]
-  (sse/events (string/join [base-url (templ/uritemplate "/api/v1/builds/{id}/events"
-                                                        {"id" build-id})])
+  (sse/events base-url
+              (templ/uritemplate "/api/v1/builds/{id}/events" {"id" build-id})
               {:headers {"User-Agent" "build-facts (https://github.com/cburgmer/build-facts)"
                          "Authorization" (format "Bearer %s" bearer-token)}
                :cookie-policy :standard}))
