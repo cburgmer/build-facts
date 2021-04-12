@@ -42,15 +42,19 @@
         selected-worker (assoc-in [id :selected-worker] selected-worker))
       summary)))
 
+
+(defn- steps [entry]
+  (cond
+    (:in_parallel entry) (->> (:steps (:in_parallel entry)) (mapcat steps))
+    (:on_success entry) (steps (:step (:on_success entry)))
+    (:get entry) [[(:id entry) (:name (:get entry))]]
+    (:put entry) [[(:id entry) (:name (:put entry))]]
+    :else [[(:id entry) (:name (:task entry))]]))
+
 (defn- tasks-from [plan events]
   (let [event-summary (reduce event-summary-reducer {} events)]
     (->> plan
-         (map (fn [entry] (if (:get entry)
-                            [(:id entry) (:name (:get entry))]
-                            (if (:on_success entry)
-                              (let [step (:step (:on_success entry))]
-                                [(:id step) (:name (:put step))])
-                              [(:id entry) (:name (:task entry))]))))
+         (mapcat steps)
          (map (fn [[id name]]
                 (let [{:keys [first-event-time last-event-time]} (get event-summary id)]
                   {:name name

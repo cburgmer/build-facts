@@ -8,10 +8,34 @@ resources:
   - name: keyval
     type: keyval
 
+  - name: git
+    type: git
+    source:
+      branch: master
+      uri: https://github.com/cburgmer/build-facts.git
+
 jobs:
   - name: build
     plan:
-      - task: build
+      - task: compile
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: alpine}
+          run:
+            path: sh
+            args:
+              - -xc
+              - |
+                RUNTIME=$(( RANDOM % 10 ))
+                sleep $RUNTIME
+
+                OUTCOME=$(( RANDOM % 3 ))
+                if [ $OUTCOME -eq 0 ]; then
+                  exit 1
+                fi
+      - task: test
         config:
           platform: linux
           image_resource:
@@ -38,9 +62,11 @@ jobs:
 
   - name: deploy
     plan:
-      - get: keyval
-        passed: [build]
-        trigger: true
+      - in_parallel:
+          - get: keyval
+            passed: [build]
+            trigger: true
+          - get: git
       - task: deploy
         config:
           platform: linux
@@ -65,7 +91,7 @@ jobs:
       - get: keyval
         passed: [deploy]
         trigger: true
-      - task: deploy
+      - task: test
         config:
           platform: linux
           image_resource:

@@ -48,6 +48,9 @@
 (defn- a-resource-put [id name]
   {:on_success {:step {:id id :put {:name name}}}})
 
+(defn- a-step-in-parallel [& steps]
+  {:in_parallel {:steps steps}})
+
 (defn- some-plan [build-id & tasks]
   [(format "http://concourse:8000/api/v1/builds/%s/plan" build-id)
    (successful-json-response {:plan {:do tasks}})])
@@ -436,6 +439,30 @@
                                                   :experimental-events true})]
         (is (= [{:name "a task" :start 1617735351000 :end 1617735351000}
                 {:name "docker" :start 1617735353000 :end 1617735353000}]
+               (:tasks build))))))
+
+  (testing "should handle steps in_parallel"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4)
+                                                  (some-plan 4
+                                                             (a-step-in-parallel (a-resource-get "abcd1234" "keyval")
+                                                                                 (a-resource-get "defg9876" "git")))
+                                                  (some-events 4
+                                                               {:time 1617735351 :origin {:id "abcd1234"}}
+                                                               {:time 1617735353 :origin {:id "defg9876"}}))
+      (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
+                                                  :bearer-token "fake-token"
+                                                  :team-name "my-team"
+                                                  :experimental-events true})]
+        (is (= [{:name "keyval" :start 1617735351000 :end 1617735351000}
+                {:name "git" :start 1617735353000 :end 1617735353000}]
                (:tasks build))))))
 
   (testing "should make no requests for builds if they are not accessed"
