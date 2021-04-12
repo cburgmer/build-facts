@@ -465,6 +465,28 @@
                 {:name "git" :start 1617735353000 :end 1617735353000}]
                (:tasks build))))))
 
+  (testing "should only report tasks which have been run"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4)
+                                                  (some-plan 4
+                                                             (a-task "abcd1234" "a task")
+                                                             (a-resource-put "defg9876" "docker"))
+                                                  (some-events 4
+                                                               {:time 1617735351 :origin {:id "abcd1234"}}))
+      (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
+                                                  :bearer-token "fake-token"
+                                                  :team-name "my-team"
+                                                  :experimental-events true})]
+        (is (= [{:name "a task" :start 1617735351000 :end 1617735351000}]
+               (:tasks build))))))
+
   (testing "should make no requests for builds if they are not accessed"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
                                                   (all-jobs (a-job "my-team" "my-pipeline" "my-job")))

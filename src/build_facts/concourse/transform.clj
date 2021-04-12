@@ -55,6 +55,7 @@
   (let [event-summary (reduce event-summary-reducer {} events)]
     (->> plan
          (mapcat steps)
+         (filter (fn [[id name]] (get event-summary id)))
          (map (fn [[id name]]
                 (let [{:keys [first-event-time last-event-time]} (get event-summary id)]
                   {:name name
@@ -62,8 +63,8 @@
                    :end (unix-time-in-ms last-event-time)}))))))
 
 (defn concourse->build [{:keys [build resources plan events]}]
-  (let [inputs (seq (inputs-from resources))
-        tasks (seq (tasks-from plan events))]
+  (let [inputs (not-empty (inputs-from resources))
+        tasks (not-empty (tasks-from plan events))]
     (cond-> (build-from build)
       inputs (assoc :inputs inputs)
       tasks (assoc :tasks tasks))))
