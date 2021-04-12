@@ -152,14 +152,17 @@
           {
             "name": "deploy",
             "start": 1451449853500,
-            "end": 1451449853602
+            "end": 1451449853602,
+            "worker": "worker-456789"
           },
           {
             "name": "smoke-test",
             "start": 1451449853710,
-            "end": 1451449853799
+            "end": 1451449853799,
+            "worker": "worker-34598"
           }
         ]
+
       ],
       "items": {
         "type": "object",
@@ -180,6 +183,10 @@
             "minimum": 0,
             "description": "End timestamp of the task (Unix epoch in milliseconds).",
             "examples": [1451449870555]
+          },
+          "worker": {
+            "type": "string",
+            "description": "Name of the worker executing the task"
           }
         }
       },

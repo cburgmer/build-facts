@@ -34,12 +34,13 @@
   (map concourse-input->input inputs))
 
 (defn- event-summary-reducer [summary event]
-  (let [{{id :id} :origin time :time selected-worker :selected_worker} (:data (j/parse-string (:data event) true))]
+  (let [data (j/parse-string (:data event) true)
+        {{{id :id} :origin time :time selected-worker :selected_worker} :data} data]
     (if id
       (cond-> (update summary id merge {})
         time (update-in [id :first-event-time] (fn [first-event-time t] (or first-event-time t)) time)
         time (assoc-in [id :last-event-time] time)
-        selected-worker (assoc-in [id :selected-worker] selected-worker))
+        (= "selected-worker" (:event data)) (assoc-in [id :selected-worker] selected-worker))
       summary)))
 
 
@@ -57,10 +58,11 @@
          (mapcat steps)
          (filter (fn [[id name]] (get event-summary id)))
          (map (fn [[id name]]
-                (let [{:keys [first-event-time last-event-time]} (get event-summary id)]
-                  {:name name
-                   :start (unix-time-in-ms first-event-time)
-                   :end (unix-time-in-ms last-event-time)}))))))
+                (let [{:keys [first-event-time last-event-time selected-worker]} (get event-summary id)]
+                  (cond-> {:name name
+                           :start (unix-time-in-ms first-event-time)
+                           :end (unix-time-in-ms last-event-time)}
+                    selected-worker (assoc :worker selected-worker))))))))
 
 (defn concourse->build [{:keys [build resources plan events]}]
   (let [inputs (not-empty (inputs-from resources))
