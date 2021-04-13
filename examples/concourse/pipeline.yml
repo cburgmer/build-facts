@@ -51,6 +51,8 @@ jobs:
                 RUNTIME=$(( RANDOM % 10 ))
                 sleep $RUNTIME
 
+                for num in $(seq 0 2000); do echo "$num"; done
+
                 OUTCOME=$(( RANDOM % 3 ))
                 if [ $OUTCOME -eq 0 ]; then
                   exit 1
