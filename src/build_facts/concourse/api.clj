@@ -1,14 +1,13 @@
 (ns build-facts.concourse.api
   (:require [build-facts.concourse.sse :as sse]
             [cheshire.core :as j]
-            [clojure.string :as string]
             [clj-http.client :as client]
             [uritemplate-clj.core :as templ]
             [clojure.tools.logging :as log]))
 
 (defn- get-json [relative-url {:keys [base-url bearer-token]}]
   (log/info (format "Retrieving %s" relative-url))
-  (let [response (client/get (string/join [base-url relative-url])
+  (let [response (client/get (str base-url relative-url)
                              {:accept "application/json"
                               :headers {"User-Agent" "build-facts (https://github.com/cburgmer/build-facts)"
                                         "Authorization" (format "Bearer %s" bearer-token)}

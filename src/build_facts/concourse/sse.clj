@@ -34,7 +34,7 @@
 (defn events [base-url relative-url params]
   (log/info (format "Retrieving %s" relative-url))
   (let [cm (conn/make-regular-conn-manager {})
-        response (client/get (string/join [base-url relative-url])
+        response (client/get (str base-url relative-url)
                              (merge params {:as :stream :connection-manager cm}))
         event-stream ^InputStream (:body response)
         events (load-events event-stream)]
