@@ -5,8 +5,6 @@
 
 ;; inspired by https://gist.github.com/oliyh/2b9b9107e7e7e12d4a60e79a19d056ee
 
-(def event-mask (re-pattern (str "(?s).+?\n\n")))
-
 (defn- parse-event [raw-event]
   (->> (re-seq #"(.*): (.*)\n?" raw-event)
        (map (fn [[match key value]] [(keyword key) value]))
@@ -22,7 +20,11 @@
           (throw (Exception. "Premature end of event stream"))
 
           (let [new-data (str data (String. byte-array 0 bytes-read))
-                es (->> (re-seq event-mask new-data) (map parse-event))]
+                event-candidates (string/split new-data #"\n\n")
+                [event-strings rest] (if (string/ends-with? new-data "\n\n")
+                                       [event-candidates ""]
+                                       [(butlast event-candidates) (last event-candidates)])
+                es (map parse-event event-strings)]
             (if (some #(= "end" (:event %)) es)
               (concat events es)
-              (recur (concat events es) (string/replace new-data event-mask "")))))))))
+              (recur (concat events es) rest))))))))
