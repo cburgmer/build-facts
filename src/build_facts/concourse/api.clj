@@ -2,6 +2,7 @@
   (:require [build-facts.concourse.sse :as sse]
             [cheshire.core :as j]
             [clj-http.client :as client]
+            [clj-http.conn-mgr :as conn]
             [uritemplate-clj.core :as templ]
             [clojure.tools.logging :as log]))
 
@@ -62,8 +63,20 @@
     (:do (:plan json))))
 
 (defn build-events [{:keys [base-url bearer-token]} build-id]
-  (sse/events base-url
-              (templ/uritemplate "/api/v1/builds/{id}/events" {"id" build-id})
-              {:headers {"User-Agent" "build-facts (https://github.com/cburgmer/build-facts)"
-                         "Authorization" (format "Bearer %s" bearer-token)}
-               :cookie-policy :standard}))
+  (let [relative-url (templ/uritemplate "/api/v1/builds/{id}/events" {"id" build-id})]
+    (log/info (format "Retrieving %s" relative-url))
+    (let [cm (conn/make-regular-conn-manager {})
+          response (client/get (str base-url relative-url)
+                               {:headers {"User-Agent" "build-facts (https://github.com/cburgmer/build-facts)"
+                                          "Authorization" (format "Bearer %s" bearer-token)}
+                                :cookie-policy :standard
+                                :as :stream
+                                :connection-manager cm})
+          event-stream ^InputStream (:body response)
+          events (sse/load-events event-stream)]
+      (log/info (format "Retrieved %s: %s" relative-url (:status response)))
+      ;; Work around that `(.close event-stream)` seems blocking, so close via shutdown
+      ;; Looks like we are just side-stepping the closing of the CloseableHttpResponse:
+      ;; https://github.com/dakrone/clj-http/blob/dd15359451645f677b3e294164cf70330b92241d/src/clj_http/core.clj#L456
+      (.shutdown cm)
+      events)))
