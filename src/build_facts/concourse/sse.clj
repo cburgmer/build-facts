@@ -20,11 +20,8 @@
           (throw (Exception. "Premature end of event stream"))
 
           (let [new-data (str data (String. byte-array 0 bytes-read))
-                event-candidates (string/split new-data #"\n\n")
-                [event-strings rest] (if (string/ends-with? new-data "\n\n")
-                                       [event-candidates ""]
-                                       [(butlast event-candidates) (last event-candidates)])
-                es (map parse-event event-strings)]
+                event-candidates (string/split new-data #"\n\n" -1)
+                es (->> event-candidates butlast (map parse-event))]
             (if (some #(= "end" (:event %)) es)
               (concat events es)
-              (recur (concat events es) rest))))))))
+              (recur (concat events es) (last event-candidates)))))))))
