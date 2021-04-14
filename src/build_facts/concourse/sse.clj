@@ -9,10 +9,8 @@
 
 (defn- parse-event [raw-event]
   (->> (re-seq #"(.*): (.*)\n?" raw-event)
-       (map #(drop 1 %))
-       (group-by first)
-       (reduce (fn [acc [k v]]
-                 (assoc acc (keyword k) (string/join (map second v)))) {})))
+       (map (fn [[match key value]] [(keyword key) value]))
+       (into (hash-map))))
 
 (defn load-events [event-stream]
   (let [byte-array (byte-array 4096)]
