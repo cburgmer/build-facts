@@ -1,5 +1,6 @@
 (ns build-facts.concourse.sse
-  (:require [clojure.string :as string])
+  (:require [clojure.string :as string]
+            [cheshire.core :as j])
   (:import [java.io InputStream]))
 
 ;; inspired by https://gist.github.com/oliyh/2b9b9107e7e7e12d4a60e79a19d056ee
@@ -22,7 +23,7 @@
       (if (neg? bytes-read)
         (throw (Exception. "Premature end of event stream"))
 
-        (let [new-data (str data (slurp byte-array))
+        (let [new-data (str data (String. byte-array 0 bytes-read))
               es (->> (re-seq event-mask new-data) (map parse-event))]
           (if (some #(= "end" (:event %)) es)
             (concat events es)

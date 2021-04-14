@@ -16,4 +16,9 @@
 
 (deftest test-concourse-sse
   (testing "should handle only end event"
-    (sut/load-events (mock-input-stream ["event: end\n\n"]))))
+    (sut/load-events (mock-input-stream ["event: end\n\n"])))
+
+  (testing "should return simple event"
+    (is (= '({:id "42"}
+             {:event "end"})
+           (sut/load-events (mock-input-stream ["id: 42\n\n" "event: end\n\n"]))))))
