@@ -44,4 +44,9 @@
   (testing "should handle end event split across batches"
     (is (= '({:id "42"}
              {:event "end"})
-           (sut/load-events (mock-input-stream ["id: 42\n\n" "event: " "end\n\n"]))))))
+           (sut/load-events (mock-input-stream ["id: 42\n\n" "event: " "end\n\n"])))))
+
+  (testing "should handle another event following the end in the last batch"
+    (is (= '({:event "end"}
+             {:id "42"})
+           (sut/load-events (mock-input-stream ["event: end\n\nid: 42\n\n"]))))))
