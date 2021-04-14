@@ -15,16 +15,16 @@
                  (assoc acc (keyword k) (string/join (map second v)))) {})))
 
 (defn load-events [event-stream]
-  (loop [events []
-         data nil]
-    (let [byte-array (byte-array 4096)
-          bytes-read (.read event-stream byte-array)]
+  (let [byte-array (byte-array 4096)]
+    (loop [events []
+           data nil]
+      (let [bytes-read (.read event-stream byte-array)]
 
-      (if (neg? bytes-read)
-        (throw (Exception. "Premature end of event stream"))
+        (if (neg? bytes-read)
+          (throw (Exception. "Premature end of event stream"))
 
-        (let [new-data (str data (String. byte-array 0 bytes-read))
-              es (->> (re-seq event-mask new-data) (map parse-event))]
-          (if (some #(= "end" (:event %)) es)
-            (concat events es)
-            (recur (concat events es) (string/replace new-data event-mask ""))))))))
+          (let [new-data (str data (String. byte-array 0 bytes-read))
+                es (->> (re-seq event-mask new-data) (map parse-event))]
+            (if (some #(= "end" (:event %)) es)
+              (concat events es)
+              (recur (concat events es) (string/replace new-data event-mask "")))))))))
