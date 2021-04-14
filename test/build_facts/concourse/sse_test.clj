@@ -21,4 +21,29 @@
   (testing "should return simple event"
     (is (= '({:id "42"}
              {:event "end"})
-           (sut/load-events (mock-input-stream ["id: 42\n\n" "event: end\n\n"]))))))
+           (sut/load-events (mock-input-stream ["id: 42\n\n" "event: end\n\n"])))))
+
+  (testing "should return event with multiple keys"
+    (is (= '({:id "42"
+              :event "event"
+              :data "{}"}
+             {:event "end"})
+           (sut/load-events (mock-input-stream ["id: 42\nevent: event\ndata: {}\n\n" "event: end\n\n"])))))
+
+  (testing "should handle multiple events in one batch"
+    (is (= '({:id "42"}
+             {:id "43"}
+             {:event "end"})
+           (sut/load-events (mock-input-stream ["id: 42\n\nid: 43\n\n" "event: end\n\n"])))))
+
+  (testing "should handle event split across batches"
+    (testing "should return simple event"
+      (is (= '({:id "42"}
+               {:event "end"})
+             (sut/load-events (mock-input-stream ["id: 42\n" "\n" "event: end\n\n"]))))))
+
+  (testing "should handle end event split across batches"
+    (testing "should return simple event"
+      (is (= '({:id "42"}
+               {:event "end"})
+             (sut/load-events (mock-input-stream ["id: 42\n\n" "event: " "end\n\n"])))))))
