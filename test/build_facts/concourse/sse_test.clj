@@ -37,13 +37,11 @@
            (sut/load-events (mock-input-stream ["id: 42\n\nid: 43\n\n" "event: end\n\n"])))))
 
   (testing "should handle event split across batches"
-    (testing "should return simple event"
-      (is (= '({:id "42"}
-               {:event "end"})
-             (sut/load-events (mock-input-stream ["id: 42\n" "\n" "event: end\n\n"]))))))
+    (is (= '({:id "42"}
+             {:event "end"})
+           (sut/load-events (mock-input-stream ["id: 42\n" "\n" "event: end\n\n"])))))
 
   (testing "should handle end event split across batches"
-    (testing "should return simple event"
-      (is (= '({:id "42"}
-               {:event "end"})
-             (sut/load-events (mock-input-stream ["id: 42\n\n" "event: " "end\n\n"])))))))
+    (is (= '({:id "42"}
+             {:event "end"})
+           (sut/load-events (mock-input-stream ["id: 42\n\n" "event: " "end\n\n"]))))))
