@@ -3,7 +3,7 @@ version: "3"
 # See https://concourse-ci.org/docker-compose.yml for a default template
 services:
   concourse:
-    image: concourse/concourse:7.0.0
+    image: concourse/concourse:7.1.0
     command: "quickstart"
     ports:
       - "8080:8080"
