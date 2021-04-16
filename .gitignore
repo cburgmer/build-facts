@@ -10,3 +10,5 @@ pom.xml.asc
 /log/
 /examples/gocd/server/config/
 /examples/teamcity/data/
+/test/smoke/node_modules/
+/test/smoke/package-lock.json

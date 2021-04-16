@@ -7,8 +7,10 @@ readonly MAPPING_TARGET="${SCRIPT_DIR}/concourse.tar.gz"
 readonly EXAMPLE_DIR="${SCRIPT_DIR}/../../examples/concourse"
 
 readonly WIREMOCK_PORT="3340"
+readonly SSE_CLOSING_PROXY_PORT="3333"
 
 readonly WIREMOCK_BASE_URL="http://localhost:${WIREMOCK_PORT}"
+readonly SSE_CLOSING_PROXY_BASE_URL="http://localhost:${SSE_CLOSING_PROXY_PORT}"
 readonly CONCOURSE_BASE_URL="http://localhost:8080"
 readonly SYNC_URL="$WIREMOCK_BASE_URL"
 readonly CONCOURSE_TARGET=build-facts-record
@@ -28,12 +30,21 @@ stop_container() {
     "$EXAMPLE_DIR/run.sh" stop
 }
 
+start_sse_closing_proxy() {
+    "${SCRIPT_DIR}/run_sse_closing_proxy.sh" install
+    TARGET_BASE_URL="$CONCOURSE_BASE_URL" PORT="$SSE_CLOSING_PROXY_PORT" "${SCRIPT_DIR}/run_sse_closing_proxy.sh" start
+}
+
+stop_sse_closing_proxy() {
+    "${SCRIPT_DIR}/run_sse_closing_proxy.sh" stop
+}
+
 start_wiremock() {
     "${SCRIPT_DIR}/run_wiremock.sh" install
     mkdir -p "$MAPPING_TMP_DIR"
     ROOT_DIR="$MAPPING_TMP_DIR" PORT="$WIREMOCK_PORT" "${SCRIPT_DIR}/run_wiremock.sh" start
 
-    echo "{\"targetBaseUrl\": \"$CONCOURSE_BASE_URL\", \"repeatsAsScenarios\": false}" \
+    echo "{\"targetBaseUrl\": \"$SSE_CLOSING_PROXY_BASE_URL\", \"repeatsAsScenarios\": false}" \
         | curl --fail --silent --output /dev/null -X POST -d@- "${WIREMOCK_BASE_URL}/__admin/recordings/start"
 }
 
@@ -63,11 +74,12 @@ login() {
 }
 
 sync_builds() {
-    "${SCRIPT_DIR}/../../lein" run -m build-facts.main concourse "$CONCOURSE_TARGET"
+    EXPERIMENTAL_EVENTS=true "${SCRIPT_DIR}/../../lein" run -m build-facts.main concourse "$CONCOURSE_TARGET"
 }
 
 clean_up() {
     stop_container
+    stop_sse_closing_proxy
     stop_wiremock
 }
 
@@ -85,6 +97,7 @@ main() {
     trap clean_up EXIT
 
     start_container
+    start_sse_closing_proxy
     start_wiremock
     login
 
