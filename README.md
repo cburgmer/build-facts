@@ -28,12 +28,12 @@ the current set of build properties.
 
 ### Supported build servers
 
-| Build server | Start, end and outcome | Inputs | Triggered by | Test results |
-| ------------ | ---------------------- | ------ | ------------ | ------------ |
-| Concourse    | ✓                      | ✓      |              |              |
-| GoCD         | ✓                      | ✓      | ✓            | ✓            |
-| Jenkins      | ✓                      | ✓      | ✓            | ✓            |
-| TeamCity     | ✓                      | ✓      | ✓            | ✓            |
+| Build server | Start, end and outcome | Inputs | Triggered by | Test results | Tasks |
+| ------------ | ---------------------- | ------ | ------------ | ------------ | ----- |
+| Concourse    | ✓                      | ✓      |              |              | ✓    |
+| GoCD         | ✓                      | ✓      | ✓            | ✓            |      |
+| Jenkins      | ✓                      | ✓      | ✓            | ✓            |      |
+| TeamCity     | ✓                      | ✓      | ✓            | ✓            |      |
 
 See [BUILD_SERVERS.md](./BUILD_SERVERS.md) for detailed setup.
 
@@ -65,6 +65,12 @@ Example:
           "runtime": 2,
           "status": "pass"
         }]
+      }],
+      "tasks":[{
+        "name": "deploy-artifact",
+        "start": 1451449853600,
+        "end": 1451449870500,
+        "worker":"worker-fb7cf6b7ac4f"
       }]
     }
 
