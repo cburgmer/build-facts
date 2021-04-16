@@ -5,8 +5,6 @@
             [clojure.string :as string]
             [clojure.tools.cli :refer [parse-opts]]))
 
-(def ^:private experimental-events (System/getenv "EXPERIMENTAL_EVENTS"))
-
 (defn concourse-usage [options-summary]
   (string/join "\n"
                ["Syncs Concourse build history"
@@ -42,7 +40,6 @@
 (defn run [options]
   (let [concourse-options (merge options
                                  (parse-options (:action-args options)))
-        config (assoc (builds/config-for (:concourse-target concourse-options))
-                      :experimental-events (= experimental-events "true"))]
+        config (builds/config-for (:concourse-target concourse-options))]
     (sync/sync-builds (assoc concourse-options :base-url (:base-url config))
                       #(builds/concourse-builds config))))

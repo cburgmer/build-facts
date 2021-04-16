@@ -26,7 +26,7 @@ stop_wiremock() {
 }
 
 sync_builds() {
-    EXPERIMENTAL_EVENTS=true JVM_OPTS="-Duser.home=${SCRIPT_DIR}" "${SCRIPT_DIR}/../../lein" run -m build-facts.main concourse mock-auth --from "2021-01-01"
+    JVM_OPTS="-Duser.home=${SCRIPT_DIR}" "${SCRIPT_DIR}/../../lein" run -m build-facts.main concourse mock-auth --from "2021-01-01"
 }
 
 ensure_user_agent() {

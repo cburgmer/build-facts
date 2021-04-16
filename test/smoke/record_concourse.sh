@@ -74,7 +74,7 @@ login() {
 }
 
 sync_builds() {
-    EXPERIMENTAL_EVENTS=true "${SCRIPT_DIR}/../../lein" run -m build-facts.main concourse "$CONCOURSE_TARGET"
+    "${SCRIPT_DIR}/../../lein" run -m build-facts.main concourse "$CONCOURSE_TARGET"
 }
 
 clean_up() {

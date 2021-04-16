@@ -386,8 +386,7 @@
                                                                {:data {:time 1617735361 :origin {:id "defg987"}}}))
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
-                                                  :team-name "my-team"
-                                                  :experimental-events true})]
+                                                  :team-name "my-team"})]
         (is (= [{:name "task one" :start 1617735351000 :end 1617735353000}
                 {:name "another task" :start 1617735354000 :end 1617735361000}]
                (:tasks build))))))
@@ -410,8 +409,7 @@
                                                                {:data {:time 1617735353 :origin {:id "defg9876"}}}))
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
-                                                  :team-name "my-team"
-                                                  :experimental-events true})]
+                                                  :team-name "my-team"})]
         (is (= [{:name "git" :start 1617735351000 :end 1617735351000}
                 {:name "a task" :start 1617735353000 :end 1617735353000}]
                (:tasks build))))))
@@ -434,8 +432,7 @@
                                                                {:data {:time 1617735353 :origin {:id "defg9876"}}}))
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
-                                                  :team-name "my-team"
-                                                  :experimental-events true})]
+                                                  :team-name "my-team"})]
         (is (= [{:name "a task" :start 1617735351000 :end 1617735351000}
                 {:name "docker" :start 1617735353000 :end 1617735353000}]
                (:tasks build))))))
@@ -458,8 +455,7 @@
                                                                {:data {:time 1617735353 :origin {:id "defg9876"}}}))
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
-                                                  :team-name "my-team"
-                                                  :experimental-events true})]
+                                                  :team-name "my-team"})]
         (is (= [{:name "keyval" :start 1617735351000 :end 1617735351000}
                 {:name "git" :start 1617735353000 :end 1617735353000}]
                (:tasks build))))))
@@ -481,8 +477,7 @@
                                                                {:data {:time 1617735351 :origin {:id "abcd1234"}}}))
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
-                                                  :team-name "my-team"
-                                                  :experimental-events true})]
+                                                  :team-name "my-team"})]
         (is (= [{:name "a task" :start 1617735351000 :end 1617735351000}]
                (:tasks build))))))
 
@@ -510,8 +505,7 @@
                                                                {:data {:time 1617735361 :origin {:id "defg987"}}}))
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
-                                                  :team-name "my-team"
-                                                  :experimental-events true})]
+                                                  :team-name "my-team"})]
         (is (= [{:name "task one" :start 1617735351000 :end 1617735353000 :worker "qwerty1234"}
                 {:name "another task" :start 1617735354000 :end 1617735361000 :worker "poiuy0987"}]
                (:tasks build))))))
