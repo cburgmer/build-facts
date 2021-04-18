@@ -43,15 +43,21 @@
     (binding [*out* *err*]
       (println message))))
 
-(defn- run-with-progress! [console? f builds]
+(defn- run-with-progress [console? f builds]
   (loop [builds-by-job builds
+         total-build-count 0
+         last-builds []
          bar (pr/progress-bar (count builds))]
     (if (empty? builds-by-job)
-      (when console? (pr/print (pr/done bar)))
-      (do (when console? (pr/print bar))
-          (f (first builds-by-job))
-          (recur (next builds-by-job)
-                 (pr/tick bar))))))
+      (do (when console? (pr/print (pr/done bar)))
+          [total-build-count last-builds])
+      (let [[job-name job-builds] (first builds-by-job)
+            [build-count last-build] (f job-builds)]
+        (when console? (pr/print bar))
+        (recur (next builds-by-job)
+               (+ total-build-count build-count)
+               (conj last-builds [job-name last-build])
+               (pr/tick bar))))))
 
 (defn- build-recent? [{start :start} sync-start-time]
   (or (nil? start)
@@ -74,14 +80,14 @@
       (when (.exists state-file)
         (j/parse-string (slurp state-file-path))))))
 
-(defn- update-state [state builds]
+(defn- update-state [state last-builds]
   (let [existing-state (or (get state "jobs")
                            {})
         pruned-state (select-keys existing-state
-                                  (map (fn [[job-name]] job-name) builds))]
-    (->> builds
-         (remove (fn [[job-name builds]] (empty? builds)))
-         (map (fn [[job-name builds]] [job-name {:lastStart (:start (last builds))}]))
+                                  (map (fn [[job-name]] job-name) last-builds))]
+    (->> last-builds
+         (remove (fn [[job-name build]] (nil? build)))
+         (map (fn [[job-name build]] [job-name {:lastStart (:start build)}]))
          (into pruned-state)
          (assoc {} :jobs))))
 
@@ -110,10 +116,15 @@
                             base-url
                             (tf/unparse (:date-time tf/formatters) user-sync-start-time))))
     (let [builds (builds-to-sync sync-start-time state (fetch-all-builds))]
-      (run-with-progress! console?
-                          (fn [[job-name builds]] (run! #(output! output splunkFormat? %) builds))
-                          builds)
-      (->> builds
-           (update-state state)
-           (write-state state-file-path))
-      (log console? (format "Synced %s builds" (count (mapcat (fn [[_ builds]] builds) builds)))))))
+      (let [[total-build-count last-builds] (run-with-progress console?
+                                                               (fn [bs]
+                                                                 (reduce (fn [[build-count last-build] build]
+                                                                           (output! output splunkFormat? build)
+                                                                           [(inc build-count) build])
+                                                                         [0 nil]
+                                                                         bs))
+                                                               builds)]
+        (->> last-builds
+             (update-state state)
+             (write-state state-file-path))
+        (log console? (format "Synced %s builds" total-build-count))))))
