@@ -29,8 +29,7 @@
                 build)]
     (if output
       (storage/store-build! output job-name build-id entity)
-      (println (json/to-string entity))))
-  build)
+      (println (json/to-string entity)))))
 
 (defn- latest-build [builds]
   (when (> (count builds)
@@ -44,13 +43,13 @@
     (binding [*out* *err*]
       (println message))))
 
-(defn- run-with-progress! [console? fn builds]
+(defn- run-with-progress! [console? f builds]
   (loop [builds-by-job builds
          bar (pr/progress-bar (count builds))]
     (if (empty? builds-by-job)
       (when console? (pr/print (pr/done bar)))
       (do (when console? (pr/print bar))
-          (fn (first builds-by-job))
+          (f (first builds-by-job))
           (recur (next builds-by-job)
                  (pr/tick bar))))))
 
