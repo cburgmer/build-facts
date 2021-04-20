@@ -23,5 +23,5 @@
                 event-candidates (string/split new-data #"\n\n" -1)
                 es (->> event-candidates butlast (map parse-event))]
             (if (some #(= "end" (:event %)) es)
-              (concat events es)
-              (recur (concat events es) (last event-candidates)))))))))
+              (into events es)
+              (recur (into events es) (last event-candidates)))))))))

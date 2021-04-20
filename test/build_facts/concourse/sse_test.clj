@@ -49,4 +49,8 @@
   (testing "should handle another event following the end in the last batch"
     (is (= '({:event "end"}
              {:id "42"})
-           (sut/load-events (mock-input-stream ["event: end\n\nid: 42\n\n"]))))))
+           (sut/load-events (mock-input-stream ["event: end\n\nid: 42\n\n"])))))
+
+  (testing "should not overflow stack"
+    (is (= 10001
+           (count (sut/load-events (mock-input-stream (into (vec (take 10000 (repeat "id: 4\n\n"))) ["event: end\n\n"]))))))))
