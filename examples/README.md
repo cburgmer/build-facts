@@ -21,8 +21,8 @@ Bring up a server (adapt with the desired build server)
 
 Sync data
 
-    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.4.0/build-facts-0.4.0-standalone.jar
-    $ java -jar build-facts-0.4.0-standalone.jar jenkins http://localhost:8080
+    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.5.0/build-facts-0.5.0-standalone.jar
+    $ java -jar build-facts-0.5.0-standalone.jar jenkins http://localhost:8080
 
 Stop a server
 
@@ -45,7 +45,7 @@ Start up Splunk and a build server of your choice
 
 Sync data from the build server into Splunk
 
-    $ java -jar build-facts-0.4.0-standalone.jar jenkins http://localhost:8080 --splunk \
+    $ java -jar build-facts-0.5.0-standalone.jar jenkins http://localhost:8080 --splunk \
         curl -k -d@- -H 'Transfer-Encoding: chunked' -H "Authorization: Splunk 1234567890qwertyuiop" \
         'https://localhost:8088/services/collector'
 
