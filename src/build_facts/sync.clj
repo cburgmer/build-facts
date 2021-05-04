@@ -114,7 +114,7 @@
                     (format "Resuming %s from last sync..." base-url)
                     (format "Starting %s from %s..."
                             base-url
-                            (tf/unparse (:date-time tf/formatters) user-sync-start-time))))
+                            (tf/unparse (:date-time tf/formatters) sync-start-time))))
     (let [builds (builds-to-sync sync-start-time state (fetch-all-builds))]
       (let [[total-build-count last-builds] (run-with-progress console?
                                                                (fn [bs]
