@@ -27,12 +27,12 @@
                       concourse-target))))))
 
 (defn- with-build-info [config {:keys [id] :as build}]
-  (let [plan  (api/build-plan config id)]
+  (let [plan (delay (api/build-plan config id))]
     {:build build
-     :resources (api/build-resources config id)
+     :resources (delay (api/build-resources config id))
      :plan plan
-     :events (when plan
-               (api/build-events config id))}))
+     :events (delay (when @plan
+                      (api/build-events config id)))}))
 
 (defn unchunk [s]
   (when (seq s)

@@ -127,7 +127,7 @@
                   :start 1451642400000
                   :end 1451642401000}]])))))
 
-  (testing "should handle a started build"
+  (testing "should handle a started build and not request any further resources"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
                                                   (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
                                                   (some-builds "my-team" "my-pipeline" "my-job"
@@ -135,10 +135,7 @@
                                                                 :name "42"
                                                                 :status "started"
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
-                                                  (some-resources 4)
-                                                  (some-plan 4)
-                                                  (some-events 4))
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)}))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
                                     :team-name "my-team"})

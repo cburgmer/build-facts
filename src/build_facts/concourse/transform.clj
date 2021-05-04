@@ -65,8 +65,11 @@
                     selected-worker (assoc :worker selected-worker))))))))
 
 (defn concourse->build [{:keys [build resources plan events]}]
-  (let [inputs (not-empty (inputs-from resources))
-        tasks (not-empty (tasks-from plan events))]
-    (cond-> (build-from build)
-      inputs (assoc :inputs inputs)
-      tasks (assoc :tasks tasks))))
+  (let [the-build (build-from build)]
+    (if (= "ongoing" (:outcome the-build))
+      the-build
+      (let [inputs (not-empty (inputs-from @resources))
+            tasks (not-empty (tasks-from @plan @events))]
+        (cond-> the-build
+          inputs (assoc :inputs inputs)
+          tasks (assoc :tasks tasks))))))
