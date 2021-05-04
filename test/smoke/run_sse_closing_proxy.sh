@@ -1,7 +1,8 @@
 #!/bin/bash
 set -eo pipefail
 
-readonly SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+readonly SCRIPT_DIR
 
 readonly DEPS_DIR="${SCRIPT_DIR}/node_modules"
 readonly TMP_LOG="/tmp/run.sse_closing_proxy.log"
