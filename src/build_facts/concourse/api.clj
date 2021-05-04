@@ -57,10 +57,14 @@
             config))
 
 (defn build-plan [config build-id]
-  (let [json (get-json (templ/uritemplate "/api/v1/builds/{id}/plan"
-                                          {"id" build-id})
-                       config)]
-    (:do (:plan json))))
+  (try
+    (let [json (get-json (templ/uritemplate "/api/v1/builds/{id}/plan"
+                                            {"id" build-id})
+                         config)]
+      (:do (:plan json)))
+    (catch Exception e
+      (when (not= 404 (:status (ex-data e)))
+        (throw e)))))
 
 (defn build-events [{:keys [base-url bearer-token]} build-id]
   (let [relative-url (templ/uritemplate "/api/v1/builds/{id}/events" {"id" build-id})]

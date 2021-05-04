@@ -55,6 +55,10 @@
   [(format "http://concourse:8000/api/v1/builds/%s/plan" build-id)
    (successful-json-response {:plan {:do tasks}})])
 
+(defn- no-plan [build-id]
+  [(format "http://concourse:8000/api/v1/builds/%s/plan" build-id)
+   (fn [_] {:status 404})])
+
 (defn- some-events [build-id & event-data]
   (let [events (concat (map-indexed (fn [idx data]
                                       (format "id: %s\nevent: event\ndata: %s" idx (j/generate-string data)))
@@ -516,4 +520,25 @@
       ;; no expectation, implicitly tests by not failing from missing route
       (first (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
-                                    :team-name "my-team"})))))
+                                    :team-name "my-team"}))))
+
+  (testing "should handle an aborted build if no plan existed yet"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "aborted"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4)
+                                                  (no-plan 4))
+      (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
+                                    :bearer-token "fake-token"
+                                    :team-name "my-team"})
+             '(["my-pipeline my-job"
+                [{:job-name "my-pipeline my-job"
+                  :build-id "42"
+                  :outcome "fail"
+                  :start 1451642400000
+                  :end 1451642401000}]]))))))
