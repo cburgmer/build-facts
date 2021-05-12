@@ -176,4 +176,22 @@
                                                                  :data {:origin {:id "901adeef"}
                                                                         :time 1134567890
                                                                         :selected_worker "defg5678"}})])})
+               :tasks))))
+  (testing "should handle a task with retry configuration"
+    (is (= [{:name "test" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
+            {:name "test" :start 1334567890000 :end 1334567890000 :worker "defg5678"}]
+           (-> (sut/concourse->build {:build {:status "succeeded"}
+                                      :resources (delay {:inputs []})
+                                      :plan (delay [{:retry [{:id "609a8bdf"
+                                                              :task {:name "test"}}
+                                                             {:id "901adeef"
+                                                              :task {:name "test"}}]}])
+                                      :events (delay [(an-event {:event "selected-worker"
+                                                                 :data {:origin {:id "609a8bdf"}
+                                                                        :time 1234567890
+                                                                        :selected_worker "abcd1234"}})
+                                                      (an-event {:event "selected-worker"
+                                                                 :data {:origin {:id "901adeef"}
+                                                                        :time 1334567890
+                                                                        :selected_worker "defg5678"}})])})
                :tasks)))))
