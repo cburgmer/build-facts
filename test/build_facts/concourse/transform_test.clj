@@ -44,8 +44,8 @@
     (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build {:build {:status "succeeded"}
                                       :resources (delay {:inputs []})
-                                      :plan (delay [{:id "609a8bdf"
-                                                     :get {:name "git"}}])
+                                      :plan (delay {:do [{:id "609a8bdf"
+                                                          :get {:name "git"}}]})
                                       :events (delay [(an-event {:event "selected-worker"
                                                                  :data {:origin {:id "609a8bdf"}
                                                                         :time 1234567890
@@ -55,8 +55,8 @@
     (is (= [{:name "git" :start 1234567890000 :end 1300000000000 :worker "abcd1234"}]
            (-> (sut/concourse->build {:build {:status "succeeded"}
                                       :resources (delay {:inputs []})
-                                      :plan (delay [{:id "609a8bdf"
-                                                     :get {:name "git"}}])
+                                      :plan (delay {:do [{:id "609a8bdf"
+                                                          :get {:name "git"}}]})
                                       :events (delay [(an-event {:event "selected-worker"
                                                                  :data {:origin {:id "609a8bdf"}
                                                                         :time 1234567890
@@ -68,8 +68,8 @@
     (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build {:build {:status "succeeded"}
                                       :resources (delay {:inputs []})
-                                      :plan (delay [{:id "609a8bdf"
-                                                     :put {:name "git"}}])
+                                      :plan (delay {:do [{:id "609a8bdf"
+                                                          :put {:name "git"}}]})
                                       :events (delay [(an-event {:event "selected-worker"
                                                                  :data {:origin {:id "609a8bdf"}
                                                                         :time 1234567890
@@ -79,8 +79,8 @@
     (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build {:build {:status "succeeded"}
                                       :resources (delay {:inputs []})
-                                      :plan (delay [{:id "609a8bdf"
-                                                     :task {:name "git"}}])
+                                      :plan (delay {:do [{:id "609a8bdf"
+                                                          :task {:name "git"}}]})
                                       :events (delay [(an-event {:event "selected-worker"
                                                                  :data {:origin {:id "609a8bdf"}
                                                                         :time 1234567890
@@ -90,8 +90,8 @@
     (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build {:build {:status "succeeded"}
                                       :resources (delay {:inputs []})
-                                      :plan (delay [{:in_parallel {:steps [{:id "609a8bdf"
-                                                                            :get {:name "git"}}]}}])
+                                      :plan (delay {:do [{:in_parallel {:steps [{:id "609a8bdf"
+                                                                                 :get {:name "git"}}]}}]})
                                       :events (delay [(an-event {:event "selected-worker"
                                                                  :data {:origin {:id "609a8bdf"}
                                                                         :time 1234567890
@@ -101,8 +101,8 @@
     (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build {:build {:status "succeeded"}
                                       :resources (delay {:inputs []})
-                                      :plan (delay [{:on_failure {:step {:id "609a8bdf"
-                                                                         :get {:name "git"}}}}])
+                                      :plan (delay {:do [{:on_failure {:step {:id "609a8bdf"
+                                                                              :get {:name "git"}}}}]})
                                       :events (delay [(an-event {:event "selected-worker"
                                                                  :data {:origin {:id "609a8bdf"}
                                                                         :time 1234567890
@@ -112,8 +112,8 @@
     (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build {:build {:status "succeeded"}
                                       :resources (delay {:inputs []})
-                                      :plan (delay [{:on_failure {:on_failure {:id "609a8bdf"
-                                                                               :get {:name "git"}}}}])
+                                      :plan (delay {:do [{:on_failure {:on_failure {:id "609a8bdf"
+                                                                                    :get {:name "git"}}}}]})
                                       :events (delay [(an-event {:event "selected-worker"
                                                                  :data {:origin {:id "609a8bdf"}
                                                                         :time 1234567890
@@ -123,8 +123,8 @@
     (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build {:build {:status "succeeded"}
                                       :resources (delay {:inputs []})
-                                      :plan (delay [{:on_success {:step {:id "609a8bdf"
-                                                                         :get {:name "git"}}}}])
+                                      :plan (delay {:do [{:on_success {:step {:id "609a8bdf"
+                                                                              :get {:name "git"}}}}]})
                                       :events (delay [(an-event {:event "selected-worker"
                                                                  :data {:origin {:id "609a8bdf"}
                                                                         :time 1234567890
@@ -134,8 +134,8 @@
     (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build {:build {:status "succeeded"}
                                       :resources (delay {:inputs []})
-                                      :plan (delay [{:on_success {:on_success {:id "609a8bdf"
-                                                                               :get {:name "git"}}}}])
+                                      :plan (delay {:do [{:on_success {:on_success {:id "609a8bdf"
+                                                                                    :get {:name "git"}}}}]})
                                       :events (delay [(an-event {:event "selected-worker"
                                                                  :data {:origin {:id "609a8bdf"}
                                                                         :time 1234567890
@@ -146,10 +146,10 @@
             {:name "version" :start 1134567890000 :end 1134567890000 :worker "defg5678"}]
            (-> (sut/concourse->build {:build {:status "succeeded"}
                                       :resources (delay {:inputs []})
-                                      :plan (delay [{:on_success {:do [{:id "609a8bdf"
-                                                                        :get {:name "git"}}
-                                                                       {:id "901adeef"
-                                                                        :get {:name "version"}}]}}])
+                                      :plan (delay {:do [{:on_success {:do [{:id "609a8bdf"
+                                                                             :get {:name "git"}}
+                                                                            {:id "901adeef"
+                                                                             :get {:name "version"}}]}}]})
                                       :events (delay [(an-event {:event "selected-worker"
                                                                  :data {:origin {:id "609a8bdf"}
                                                                         :time 1234567890
@@ -164,10 +164,10 @@
             {:name "version" :start 1134567890000 :end 1134567890000 :worker "defg5678"}]
            (-> (sut/concourse->build {:build {:status "succeeded"}
                                       :resources (delay {:inputs []})
-                                      :plan (delay [{:on_failure {:do [{:id "609a8bdf"
-                                                                        :get {:name "git"}}
-                                                                       {:id "901adeef"
-                                                                        :get {:name "version"}}]}}])
+                                      :plan (delay {:do [{:on_failure {:do [{:id "609a8bdf"
+                                                                             :get {:name "git"}}
+                                                                            {:id "901adeef"
+                                                                             :get {:name "version"}}]}}]})
                                       :events (delay [(an-event {:event "selected-worker"
                                                                  :data {:origin {:id "609a8bdf"}
                                                                         :time 1234567890
@@ -182,10 +182,10 @@
             {:name "test" :start 1334567890000 :end 1334567890000 :worker "defg5678"}]
            (-> (sut/concourse->build {:build {:status "succeeded"}
                                       :resources (delay {:inputs []})
-                                      :plan (delay [{:retry [{:id "609a8bdf"
-                                                              :task {:name "test"}}
-                                                             {:id "901adeef"
-                                                              :task {:name "test"}}]}])
+                                      :plan (delay {:do [{:retry [{:id "609a8bdf"
+                                                                   :task {:name "test"}}
+                                                                  {:id "901adeef"
+                                                                   :task {:name "test"}}]}]})
                                       :events (delay [(an-event {:event "selected-worker"
                                                                  :data {:origin {:id "609a8bdf"}
                                                                         :time 1234567890

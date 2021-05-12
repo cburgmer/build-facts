@@ -46,6 +46,7 @@
 
 (defn- steps [entry]
   (cond
+    (:do entry) (mapcat steps (:do entry))
     (:in_parallel entry) (->> (:steps (:in_parallel entry)) (mapcat steps))
     (:on_success entry) (let [{{step :step do :do on_success :on_success} :on_success} entry]
                           (if do
@@ -63,7 +64,7 @@
 (defn- tasks-from [plan events]
   (let [event-summary (reduce event-summary-reducer {} events)]
     (->> plan
-         (mapcat steps)
+         steps
          (filter (fn [[id name]] (get event-summary id)))
          (map (fn [[id name]]
                 (let [{:keys [first-event-time last-event-time selected-worker]} (get event-summary id)]

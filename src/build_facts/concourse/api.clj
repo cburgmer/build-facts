@@ -61,7 +61,7 @@
     (let [json (get-json (templ/uritemplate "/api/v1/builds/{id}/plan"
                                             {"id" build-id})
                          config)]
-      (:do (:plan json)))
+      (:plan json))
     (catch Exception e
       (when (not= 404 (:status (ex-data e)))
         (throw e)))))

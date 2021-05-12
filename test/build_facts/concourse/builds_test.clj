@@ -51,9 +51,11 @@
 (defn- a-step-in-parallel [& steps]
   {:in_parallel {:steps steps}})
 
-(defn- some-plan [build-id & tasks]
-  [(format "http://concourse:8000/api/v1/builds/%s/plan" build-id)
-   (successful-json-response {:plan {:do tasks}})])
+(defn- some-plan
+  ([build-id] [(format "http://concourse:8000/api/v1/builds/%s/plan" build-id)
+               (successful-json-response {:plan {:do []}})])
+  ([build-id step] [(format "http://concourse:8000/api/v1/builds/%s/plan" build-id)
+                    (successful-json-response {:plan step})]))
 
 (defn- no-plan [build-id]
   [(format "http://concourse:8000/api/v1/builds/%s/plan" build-id)
@@ -377,8 +379,8 @@
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                   (some-resources 4)
                                                   (some-plan 4
-                                                             (a-task "abcd1234" "task one")
-                                                             (a-task "defg987" "another task"))
+                                                             {:do [(a-task "abcd1234" "task one")
+                                                                   (a-task "defg987" "another task")]})
                                                   (some-events 4
                                                                {:data {:time 1617735351 :origin {:id "abcd1234"}}}
                                                                {:data {:time 1617735353 :origin {:id "abcd1234"}}}
@@ -403,8 +405,8 @@
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                   (some-resources 4)
                                                   (some-plan 4
-                                                             (a-resource-get "abcd1234" "git")
-                                                             (a-task "defg9876" "a task"))
+                                                             {:do [(a-resource-get "abcd1234" "git")
+                                                                   (a-task "defg9876" "a task")]})
                                                   (some-events 4
                                                                {:data {:time 1617735351 :origin {:id "abcd1234"}}}
                                                                {:data {:time 1617735353 :origin {:id "defg9876"}}}))
@@ -426,8 +428,8 @@
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                   (some-resources 4)
                                                   (some-plan 4
-                                                             (a-task "abcd1234" "a task")
-                                                             (a-resource-put "defg9876" "docker"))
+                                                             {:do [(a-task "abcd1234" "a task")
+                                                                   (a-resource-put "defg9876" "docker")]})
                                                   (some-events 4
                                                                {:data {:time 1617735351 :origin {:id "abcd1234"}}}
                                                                {:data {:time 1617735353 :origin {:id "defg9876"}}}))
@@ -449,8 +451,8 @@
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                   (some-resources 4)
                                                   (some-plan 4
-                                                             (a-step-in-parallel (a-resource-get "abcd1234" "keyval")
-                                                                                 (a-resource-get "defg9876" "git")))
+                                                             {:do [(a-step-in-parallel (a-resource-get "abcd1234" "keyval")
+                                                                                       (a-resource-get "defg9876" "git"))]})
                                                   (some-events 4
                                                                {:data {:time 1617735351 :origin {:id "abcd1234"}}}
                                                                {:data {:time 1617735353 :origin {:id "defg9876"}}}))
@@ -472,8 +474,8 @@
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                   (some-resources 4)
                                                   (some-plan 4
-                                                             (a-task "abcd1234" "a task")
-                                                             (a-resource-put "defg9876" "docker"))
+                                                             {:do [(a-task "abcd1234" "a task")
+                                                                   (a-resource-put "defg9876" "docker")]})
                                                   (some-events 4
                                                                {:data {:time 1617735351 :origin {:id "abcd1234"}}}))
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
@@ -493,8 +495,8 @@
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                   (some-resources 4)
                                                   (some-plan 4
-                                                             (a-task "abcd1234" "task one")
-                                                             (a-task "defg987" "another task"))
+                                                             {:do [(a-task "abcd1234" "task one")
+                                                                   (a-task "defg987" "another task")]})
                                                   (some-events 4
                                                                {:data {:time 1617735351 :origin {:id "abcd1234"}}}
                                                                {:event "selected-worker"
@@ -509,6 +511,31 @@
                                                   :team-name "my-team"})]
         (is (= [{:name "task one" :start 1617735351000 :end 1617735353000 :worker "qwerty1234"}
                 {:name "another task" :start 1617735354000 :end 1617735361000 :worker "poiuy0987"}]
+               (:tasks build))))))
+
+  (testing "should handle a plan with an on_failure step"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "succeeded"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4)
+                                                  (some-plan 4
+                                                             {:on_failure {:step (a-task "abcd1234" "task one")
+                                                                           :on_failure (a-task "defg987" "another task")}})
+                                                  (some-events 4
+                                                               {:event "selected-worker"
+                                                                :data {:time 1617735352 :origin {:id "abcd1234"} :selected_worker "qwerty1234"}}
+                                                               {:event "selected-worker"
+                                                                :data {:time 1617735354 :origin {:id "defg987"} :selected_worker "poiuy0987"}}))
+      (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
+                                                  :bearer-token "fake-token"
+                                                  :team-name "my-team"})]
+        (is (= [{:name "task one" :start 1617735352000 :end 1617735352000 :worker "qwerty1234"}
+                {:name "another task" :start 1617735354000 :end 1617735354000 :worker "poiuy0987"}]
                (:tasks build))))))
 
   (testing "should make no requests for builds if they are not accessed"
