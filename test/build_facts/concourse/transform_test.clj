@@ -1,6 +1,11 @@
 (ns build-facts.concourse.transform-test
   (:require [build-facts.concourse.transform :as sut]
+            [cheshire.core :as j]
             [clojure.test :refer :all]))
+
+(defn- an-event [event-data]
+  {:data (j/generate-string event-data)})
+
 
 (deftest test-concourse-transform
   (testing "handles inputs with multiple keys"
@@ -34,4 +39,72 @@
                                       :events (delay)})
                :inputs
                first
-               :revision)))))
+               :revision))))
+  (testing "should handle a single event"
+    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+           (-> (sut/concourse->build {:build {:status "succeeded"}
+                                      :resources (delay {:inputs []})
+                                      :plan (delay [{:id "609a8bdf"
+                                                     :get {:name "git"}}])
+                                      :events (delay [(an-event {:event "selected-worker"
+                                                                 :data {:origin {:id "609a8bdf"}
+                                                                        :time 1234567890
+                                                                        :selected_worker "abcd1234"}})])})
+               :tasks))))
+  (testing "should handle a multiple events for a task"
+    (is (= [{:name "git" :start 1234567890000 :end 1300000000000 :worker "abcd1234"}]
+           (-> (sut/concourse->build {:build {:status "succeeded"}
+                                      :resources (delay {:inputs []})
+                                      :plan (delay [{:id "609a8bdf"
+                                                     :get {:name "git"}}])
+                                      :events (delay [(an-event {:event "selected-worker"
+                                                                 :data {:origin {:id "609a8bdf"}
+                                                                        :time 1234567890
+                                                                        :selected_worker "abcd1234"}})
+                                                      (an-event {:data {:origin {:id "609a8bdf"}
+                                                                        :time 1300000000}})])})
+               :tasks))))
+  (testing "should handle a plan with a put"
+    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+           (-> (sut/concourse->build {:build {:status "succeeded"}
+                                      :resources (delay {:inputs []})
+                                      :plan (delay [{:id "609a8bdf"
+                                                     :put {:name "git"}}])
+                                      :events (delay [(an-event {:event "selected-worker"
+                                                                 :data {:origin {:id "609a8bdf"}
+                                                                        :time 1234567890
+                                                                        :selected_worker "abcd1234"}})])})
+               :tasks))))
+  (testing "should handle a plan with a task"
+    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+           (-> (sut/concourse->build {:build {:status "succeeded"}
+                                      :resources (delay {:inputs []})
+                                      :plan (delay [{:id "609a8bdf"
+                                                     :task {:name "git"}}])
+                                      :events (delay [(an-event {:event "selected-worker"
+                                                                 :data {:origin {:id "609a8bdf"}
+                                                                        :time 1234567890
+                                                                        :selected_worker "abcd1234"}})])})
+               :tasks))))
+  (testing "should handle a plan with parallel steps"
+    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+           (-> (sut/concourse->build {:build {:status "succeeded"}
+                                      :resources (delay {:inputs []})
+                                      :plan (delay [{:in_parallel {:steps [{:id "609a8bdf"
+                                                                            :get {:name "git"}}]}}])
+                                      :events (delay [(an-event {:event "selected-worker"
+                                                                 :data {:origin {:id "609a8bdf"}
+                                                                        :time 1234567890
+                                                                        :selected_worker "abcd1234"}})])})
+               :tasks))))
+  (testing "should handle a plan with a on_failure configuration"
+    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+           (-> (sut/concourse->build {:build {:status "succeeded"}
+                                      :resources (delay {:inputs []})
+                                      :plan (delay [{:on_failure {:step {:id "609a8bdf"
+                                                                         :get {:name "git"}}}}])
+                                      :events (delay [(an-event {:event "selected-worker"
+                                                                 :data {:origin {:id "609a8bdf"}
+                                                                        :time 1234567890
+                                                                        :selected_worker "abcd1234"}})])})
+               :tasks)))))

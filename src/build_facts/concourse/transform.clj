@@ -48,6 +48,7 @@
   (cond
     (:in_parallel entry) (->> (:steps (:in_parallel entry)) (mapcat steps))
     (:on_success entry) (steps (:step (:on_success entry)))
+    (:on_failure entry) (steps (:step (:on_failure entry)))
     (:get entry) [[(:id entry) (:name (:get entry))]]
     (:put entry) [[(:id entry) (:name (:put entry))]]
     :else [[(:id entry) (:name (:task entry))]]))
