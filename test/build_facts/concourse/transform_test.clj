@@ -107,4 +107,37 @@
                                                                  :data {:origin {:id "609a8bdf"}
                                                                         :time 1234567890
                                                                         :selected_worker "abcd1234"}})])})
+               :tasks))))
+  (testing "should handle a plan with nested on_failure configuration"
+    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+           (-> (sut/concourse->build {:build {:status "succeeded"}
+                                      :resources (delay {:inputs []})
+                                      :plan (delay [{:on_failure {:on_failure {:id "609a8bdf"
+                                                                               :get {:name "git"}}}}])
+                                      :events (delay [(an-event {:event "selected-worker"
+                                                                 :data {:origin {:id "609a8bdf"}
+                                                                        :time 1234567890
+                                                                        :selected_worker "abcd1234"}})])})
+               :tasks))))
+  (testing "should handle a plan with a on_success configuration"
+    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+           (-> (sut/concourse->build {:build {:status "succeeded"}
+                                      :resources (delay {:inputs []})
+                                      :plan (delay [{:on_success {:step {:id "609a8bdf"
+                                                                         :get {:name "git"}}}}])
+                                      :events (delay [(an-event {:event "selected-worker"
+                                                                 :data {:origin {:id "609a8bdf"}
+                                                                        :time 1234567890
+                                                                        :selected_worker "abcd1234"}})])})
+               :tasks))))
+  (testing "should handle a plan with nested on_success configuration"
+    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+           (-> (sut/concourse->build {:build {:status "succeeded"}
+                                      :resources (delay {:inputs []})
+                                      :plan (delay [{:on_success {:on_success {:id "609a8bdf"
+                                                                               :get {:name "git"}}}}])
+                                      :events (delay [(an-event {:event "selected-worker"
+                                                                 :data {:origin {:id "609a8bdf"}
+                                                                        :time 1234567890
+                                                                        :selected_worker "abcd1234"}})])})
                :tasks)))))

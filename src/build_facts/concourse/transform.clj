@@ -47,8 +47,10 @@
 (defn- steps [entry]
   (cond
     (:in_parallel entry) (->> (:steps (:in_parallel entry)) (mapcat steps))
-    (:on_success entry) (steps (:step (:on_success entry)))
-    (:on_failure entry) (steps (:step (:on_failure entry)))
+    (:on_success entry) (let [{{step :step on_success :on_success} :on_success} entry]
+                          (concat (steps step) (steps on_success)))
+    (:on_failure entry) (let [{{step :step on_failure :on_failure} :on_failure} entry]
+                          (concat (steps step) (steps on_failure)))
     (:get entry) [[(:id entry) (:name (:get entry))]]
     (:put entry) [[(:id entry) (:name (:put entry))]]
     :else [[(:id entry) (:name (:task entry))]]))
