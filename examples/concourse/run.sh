@@ -78,23 +78,22 @@ provision_pipeline() {
     local fly_bin="/tmp/fly.$$"
     local os_name
     os_name="$(uname -s)"
-    {
-        curl -vL "${BASE_URL}/api/v1/cli?arch=amd64&platform=${os_name}" -o "$fly_bin"
-        chmod a+x "$fly_bin"
+    # shellcheck disable=SC2129
+    curl -vL "${BASE_URL}/api/v1/cli?arch=amd64&platform=${os_name}" -o "$fly_bin" &>> "$TMP_LOG"
+    chmod a+x "$fly_bin" &>> "$TMP_LOG"
 
-        "$fly_bin" -t build-facts login -c "$BASE_URL" -u "$USER" -p "$PASSWORD"
+    "$fly_bin" -t build-facts login -c "$BASE_URL" -u "$USER" -p "$PASSWORD" &>> "$TMP_LOG"
 
-        "$fly_bin" -t build-facts set-pipeline -p anotherpipeline -c anotherpipeline.yml -n
-        "$fly_bin" -t build-facts unpause-pipeline -p anotherpipeline
-        "$fly_bin" -t build-facts unpause-job -j anotherpipeline/hello-world
-        "$fly_bin" -t build-facts trigger-job -j anotherpipeline/hello-world
+    "$fly_bin" -t build-facts set-pipeline -p anotherpipeline -c "$SCRIPT_DIR"/anotherpipeline.yml -n &>> "$TMP_LOG"
+    "$fly_bin" -t build-facts unpause-pipeline -p anotherpipeline &>> "$TMP_LOG"
+    "$fly_bin" -t build-facts unpause-job -j anotherpipeline/hello-world &>> "$TMP_LOG"
+    "$fly_bin" -t build-facts trigger-job -j anotherpipeline/hello-world &>> "$TMP_LOG"
 
-        "$fly_bin" -t build-facts set-pipeline -p pipeline -c pipeline.yml -n
-        "$fly_bin" -t build-facts unpause-pipeline -p pipeline
-        "$fly_bin" -t build-facts unpause-job -j pipeline/build
-        "$fly_bin" -t build-facts unpause-job -j pipeline/deploy
-        "$fly_bin" -t build-facts unpause-job -j pipeline/smoketest
-    } &>> "$TMP_LOG"
+    "$fly_bin" -t build-facts set-pipeline -p pipeline -c "$SCRIPT_DIR"/pipeline.yml -n &>> "$TMP_LOG"
+    "$fly_bin" -t build-facts unpause-pipeline -p pipeline &>> "$TMP_LOG"
+    "$fly_bin" -t build-facts unpause-job -j pipeline/build &>> "$TMP_LOG"
+    "$fly_bin" -t build-facts unpause-job -j pipeline/deploy &>> "$TMP_LOG"
+    "$fly_bin" -t build-facts unpause-job -j pipeline/smoketest &>> "$TMP_LOG"
 
     for run in 1 2 3 4 5; do
         announce "Triggering build run ${run}"
