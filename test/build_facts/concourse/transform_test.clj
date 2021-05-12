@@ -180,4 +180,13 @@
                                                                         :data {:origin {:id "901adeef"}
                                                                                :time 1334567890
                                                                                :selected_worker "defg5678"}})]}))
+               :tasks))))
+  (testing "should handle a set_pipeline step"
+    (is (= [{:name "my-pipeline" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+           (-> (sut/concourse->build (a-build-with {:plan {:do [{:id "609a8bdf"
+                                                                 :set_pipeline {:name "my-pipeline"}}]}
+                                                    :events [(an-event {:event "selected-worker"
+                                                                        :data {:origin {:id "609a8bdf"}
+                                                                               :time 1234567890
+                                                                               :selected_worker "abcd1234"}})]}))
                :tasks)))))

@@ -58,6 +58,7 @@
                             (concat (steps step) (steps on_failure))))
     (:get entry) [[(:id entry) (:name (:get entry))]]
     (:put entry) [[(:id entry) (:name (:put entry))]]
+    (:set_pipeline entry) [[(:id entry) (:name (:set_pipeline entry))]]
     (:retry entry) (mapcat steps (:retry entry))
     :else [[(:id entry) (:name (:task entry))]]))
 
