@@ -43,6 +43,8 @@
         (= "selected-worker" (:event data)) (assoc-in [id :selected-worker] selected-worker))
       summary)))
 
+(defn- extract-step [step type]
+  [(:id step) (format "%s (%s)" (:name (get step type)) (name type))])
 
 (defn- steps [entry]
   (cond
@@ -56,11 +58,11 @@
                           (if do
                             (concat (mapcat steps do) (steps on_failure))
                             (concat (steps step) (steps on_failure))))
-    (:get entry) [[(:id entry) (:name (:get entry))]]
-    (:put entry) [[(:id entry) (:name (:put entry))]]
-    (:set_pipeline entry) [[(:id entry) (:name (:set_pipeline entry))]]
+    (:get entry) [(extract-step entry :get)]
+    (:put entry) [(extract-step entry :put)]
+    (:set_pipeline entry) [(extract-step entry :set_pipeline)]
     (:retry entry) (mapcat steps (:retry entry))
-    :else [[(:id entry) (:name (:task entry))]]))
+    :else [(extract-step entry :task)]))
 
 (defn- tasks-from [plan events]
   (let [event-summary (reduce event-summary-reducer {} events)]

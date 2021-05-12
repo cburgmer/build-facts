@@ -51,7 +51,7 @@
                first
                :revision))))
   (testing "should handle a single event"
-    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+    (is (= [{:name "git (get)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:id "609a8bdf"
                                                                  :get {:name "git"}}]}
                                                     :events [(an-event {:event "selected-worker"
@@ -60,7 +60,7 @@
                                                                                :selected_worker "abcd1234"}})]}))
                :tasks))))
   (testing "should handle multiple events for a task"
-    (is (= [{:name "git" :start 1234567890000 :end 1300000000000 :worker "abcd1234"}]
+    (is (= [{:name "git (get)" :start 1234567890000 :end 1300000000000 :worker "abcd1234"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:id "609a8bdf"
                                                                  :get {:name "git"}}]}
                                                     :events [(an-event {:event "selected-worker"
@@ -71,7 +71,7 @@
                                                                                :time 1300000000}})]}))
                :tasks))))
   (testing "should handle a plan with a put"
-    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+    (is (= [{:name "git (put)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:id "609a8bdf"
                                                                  :put {:name "git"}}]}
                                                     :events [(an-event {:event "selected-worker"
@@ -80,16 +80,16 @@
                                                                                :selected_worker "abcd1234"}})]}))
                :tasks))))
   (testing "should handle a plan with a task"
-    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+    (is (= [{:name "my-task (task)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:id "609a8bdf"
-                                                                 :task {:name "git"}}]}
+                                                                 :task {:name "my-task"}}]}
                                                     :events [(an-event {:event "selected-worker"
                                                                         :data {:origin {:id "609a8bdf"}
                                                                                :time 1234567890
                                                                                :selected_worker "abcd1234"}})]}))
                :tasks))))
   (testing "should handle a plan with parallel steps"
-    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+    (is (= [{:name "git (get)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:in_parallel {:steps [{:id "609a8bdf"
                                                                                         :get {:name "git"}}]}}]}
                                                     :events [(an-event {:event "selected-worker"
@@ -98,7 +98,7 @@
                                                                                :selected_worker "abcd1234"}})]}))
                :tasks))))
   (testing "should handle a plan with a on_failure configuration"
-    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+    (is (= [{:name "git (get)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:on_failure {:step {:id "609a8bdf"
                                                                                      :get {:name "git"}}}}]}
                                                     :events [(an-event {:event "selected-worker"
@@ -107,7 +107,7 @@
                                                                                :selected_worker "abcd1234"}})]}))
                :tasks))))
   (testing "should handle a plan with nested on_failure configuration"
-    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+    (is (= [{:name "git (get)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:on_failure {:on_failure {:id "609a8bdf"
                                                                                            :get {:name "git"}}}}]}
                                                     :events [(an-event {:event "selected-worker"
@@ -116,7 +116,7 @@
                                                                                :selected_worker "abcd1234"}})]}))
                :tasks))))
   (testing "should handle a plan with a on_success configuration"
-    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+    (is (= [{:name "git (get)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:on_success {:step {:id "609a8bdf"
                                                                                      :get {:name "git"}}}}]}
                                                     :events [(an-event {:event "selected-worker"
@@ -125,7 +125,7 @@
                                                                                :selected_worker "abcd1234"}})]}))
                :tasks))))
   (testing "should handle a plan with nested on_success configuration"
-    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+    (is (= [{:name "git (get)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:on_success {:on_success {:id "609a8bdf"
                                                                                            :get {:name "git"}}}}]}
                                                     :events [(an-event {:event "selected-worker"
@@ -134,8 +134,8 @@
                                                                                :selected_worker "abcd1234"}})]}))
                :tasks))))
   (testing "should handle a plan with a on_success configuration and multiple sub-steps"
-    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
-            {:name "version" :start 1134567890000 :end 1134567890000 :worker "defg5678"}]
+    (is (= [{:name "git (get)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
+            {:name "version (get)" :start 1134567890000 :end 1134567890000 :worker "defg5678"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:on_success {:do [{:id "609a8bdf"
                                                                                     :get {:name "git"}}
                                                                                    {:id "901adeef"
@@ -150,8 +150,8 @@
                                                                                :selected_worker "defg5678"}})]}))
                :tasks))))
   (testing "should handle a plan with a on_failure configuration and multiple sub-steps"
-    (is (= [{:name "git" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
-            {:name "version" :start 1134567890000 :end 1134567890000 :worker "defg5678"}]
+    (is (= [{:name "git (get)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
+            {:name "version (get)" :start 1134567890000 :end 1134567890000 :worker "defg5678"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:on_failure {:do [{:id "609a8bdf"
                                                                                     :get {:name "git"}}
                                                                                    {:id "901adeef"
@@ -166,8 +166,8 @@
                                                                                :selected_worker "defg5678"}})]}))
                :tasks))))
   (testing "should handle a task with retry configuration"
-    (is (= [{:name "test" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
-            {:name "test" :start 1334567890000 :end 1334567890000 :worker "defg5678"}]
+    (is (= [{:name "test (task)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
+            {:name "test (task)" :start 1334567890000 :end 1334567890000 :worker "defg5678"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:retry [{:id "609a8bdf"
                                                                           :task {:name "test"}}
                                                                          {:id "901adeef"
@@ -182,7 +182,7 @@
                                                                                :selected_worker "defg5678"}})]}))
                :tasks))))
   (testing "should handle a set_pipeline step"
-    (is (= [{:name "my-pipeline" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
+    (is (= [{:name "my-pipeline (set_pipeline)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:id "609a8bdf"
                                                                  :set_pipeline {:name "my-pipeline"}}]}
                                                     :events [(an-event {:event "selected-worker"

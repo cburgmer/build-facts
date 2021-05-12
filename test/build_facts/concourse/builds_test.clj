@@ -42,14 +42,8 @@
 (defn- a-task [id name]
   {:id id :task {:name name}})
 
-(defn- a-resource-get [id name]
-  {:id id :get {:name name}})
-
 (defn- a-resource-put [id name]
   {:on_success {:step {:id id :put {:name name}}}})
-
-(defn- a-step-in-parallel [& steps]
-  {:in_parallel {:steps steps}})
 
 (defn- some-plan
   ([build-id] [(format "http://concourse:8000/api/v1/builds/%s/plan" build-id)
@@ -390,77 +384,8 @@
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
                                                   :team-name "my-team"})]
-        (is (= [{:name "task one" :start 1617735351000 :end 1617735353000}
-                {:name "another task" :start 1617735354000 :end 1617735361000}]
-               (:tasks build))))))
-
-  (testing "should handle resource get"
-    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
-                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
-                                                  (some-builds "my-team" "my-pipeline" "my-job"
-                                                               {:id 4
-                                                                :name "42"
-                                                                :status "succeeded"
-                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
-                                                  (some-resources 4)
-                                                  (some-plan 4
-                                                             {:do [(a-resource-get "abcd1234" "git")
-                                                                   (a-task "defg9876" "a task")]})
-                                                  (some-events 4
-                                                               {:data {:time 1617735351 :origin {:id "abcd1234"}}}
-                                                               {:data {:time 1617735353 :origin {:id "defg9876"}}}))
-      (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
-                                                  :bearer-token "fake-token"
-                                                  :team-name "my-team"})]
-        (is (= [{:name "git" :start 1617735351000 :end 1617735351000}
-                {:name "a task" :start 1617735353000 :end 1617735353000}]
-               (:tasks build))))))
-
-  (testing "should handle resource put"
-    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
-                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
-                                                  (some-builds "my-team" "my-pipeline" "my-job"
-                                                               {:id 4
-                                                                :name "42"
-                                                                :status "succeeded"
-                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
-                                                  (some-resources 4)
-                                                  (some-plan 4
-                                                             {:do [(a-task "abcd1234" "a task")
-                                                                   (a-resource-put "defg9876" "docker")]})
-                                                  (some-events 4
-                                                               {:data {:time 1617735351 :origin {:id "abcd1234"}}}
-                                                               {:data {:time 1617735353 :origin {:id "defg9876"}}}))
-      (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
-                                                  :bearer-token "fake-token"
-                                                  :team-name "my-team"})]
-        (is (= [{:name "a task" :start 1617735351000 :end 1617735351000}
-                {:name "docker" :start 1617735353000 :end 1617735353000}]
-               (:tasks build))))))
-
-  (testing "should handle steps in_parallel"
-    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
-                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"))
-                                                  (some-builds "my-team" "my-pipeline" "my-job"
-                                                               {:id 4
-                                                                :name "42"
-                                                                :status "succeeded"
-                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
-                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
-                                                  (some-resources 4)
-                                                  (some-plan 4
-                                                             {:do [(a-step-in-parallel (a-resource-get "abcd1234" "keyval")
-                                                                                       (a-resource-get "defg9876" "git"))]})
-                                                  (some-events 4
-                                                               {:data {:time 1617735351 :origin {:id "abcd1234"}}}
-                                                               {:data {:time 1617735353 :origin {:id "defg9876"}}}))
-      (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
-                                                  :bearer-token "fake-token"
-                                                  :team-name "my-team"})]
-        (is (= [{:name "keyval" :start 1617735351000 :end 1617735351000}
-                {:name "git" :start 1617735353000 :end 1617735353000}]
+        (is (= [{:name "task one (task)" :start 1617735351000 :end 1617735353000}
+                {:name "another task (task)" :start 1617735354000 :end 1617735361000}]
                (:tasks build))))))
 
   (testing "should only report tasks which have been run"
@@ -481,7 +406,7 @@
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
                                                   :team-name "my-team"})]
-        (is (= [{:name "a task" :start 1617735351000 :end 1617735351000}]
+        (is (= [{:name "a task (task)" :start 1617735351000 :end 1617735351000}]
                (:tasks build))))))
 
   (testing "should report worker for task"
@@ -509,8 +434,8 @@
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
                                                   :team-name "my-team"})]
-        (is (= [{:name "task one" :start 1617735351000 :end 1617735353000 :worker "qwerty1234"}
-                {:name "another task" :start 1617735354000 :end 1617735361000 :worker "poiuy0987"}]
+        (is (= [{:name "task one (task)" :start 1617735351000 :end 1617735353000 :worker "qwerty1234"}
+                {:name "another task (task)" :start 1617735354000 :end 1617735361000 :worker "poiuy0987"}]
                (:tasks build))))))
 
   (testing "should handle a plan with an on_failure step"
@@ -534,8 +459,8 @@
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
                                                   :team-name "my-team"})]
-        (is (= [{:name "task one" :start 1617735352000 :end 1617735352000 :worker "qwerty1234"}
-                {:name "another task" :start 1617735354000 :end 1617735354000 :worker "poiuy0987"}]
+        (is (= [{:name "task one (task)" :start 1617735352000 :end 1617735352000 :worker "qwerty1234"}
+                {:name "another task (task)" :start 1617735354000 :end 1617735354000 :worker "poiuy0987"}]
                (:tasks build))))))
 
   (testing "should make no requests for builds if they are not accessed"
