@@ -166,12 +166,28 @@
                                                                                :selected_worker "defg5678"}})]}))
                :tasks))))
   (testing "should handle a task with retry configuration"
-    (is (= [{:name "test (task)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
-            {:name "test (task)" :start 1334567890000 :end 1334567890000 :worker "defg5678"}]
+    (is (= [{:name "test #1 (task)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
+            {:name "test #2 (task)" :start 1334567890000 :end 1334567890000 :worker "defg5678"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:retry [{:id "609a8bdf"
                                                                           :task {:name "test"}}
                                                                          {:id "901adeef"
                                                                           :task {:name "test"}}]}]}
+                                                    :events [(an-event {:event "selected-worker"
+                                                                        :data {:origin {:id "609a8bdf"}
+                                                                               :time 1234567890
+                                                                               :selected_worker "abcd1234"}})
+                                                             (an-event {:event "selected-worker"
+                                                                        :data {:origin {:id "901adeef"}
+                                                                               :time 1334567890
+                                                                               :selected_worker "defg5678"}})]}))
+               :tasks))))
+  (testing "should number multiple calls of the same resource if same type"
+    (is (= [{:name "git #1 (get)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
+            {:name "git #2 (get)" :start 1334567890000 :end 1334567890000 :worker "defg5678"}]
+           (-> (sut/concourse->build (a-build-with {:plan {:do [{:retry [{:id "609a8bdf"
+                                                                          :get {:name "git"}}
+                                                                         {:id "901adeef"
+                                                                          :get {:name "git"}}]}]}
                                                     :events [(an-event {:event "selected-worker"
                                                                         :data {:origin {:id "609a8bdf"}
                                                                                :time 1234567890
