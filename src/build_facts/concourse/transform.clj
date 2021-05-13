@@ -87,7 +87,8 @@
                   (cond-> {:name name
                            :start (unix-time-in-ms first-event-time)
                            :end (unix-time-in-ms last-event-time)}
-                    selected-worker (assoc :worker selected-worker))))))))
+                    selected-worker (assoc :worker selected-worker)))))
+         (sort-by :start))))
 
 (defn concourse->build [{:keys [build resources plan events]}]
   (let [the-build (build-from build)]

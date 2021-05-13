@@ -135,7 +135,7 @@
                :tasks))))
   (testing "should handle a plan with a on_success configuration and multiple sub-steps"
     (is (= [{:name "git (get)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
-            {:name "version (get)" :start 1134567890000 :end 1134567890000 :worker "defg5678"}]
+            {:name "version (get)" :start 1334567890000 :end 1334567890000 :worker "defg5678"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:on_success {:do [{:id "609a8bdf"
                                                                                     :get {:name "git"}}
                                                                                    {:id "901adeef"
@@ -146,12 +146,12 @@
                                                                                :selected_worker "abcd1234"}})
                                                              (an-event {:event "selected-worker"
                                                                         :data {:origin {:id "901adeef"}
-                                                                               :time 1134567890
+                                                                               :time 1334567890
                                                                                :selected_worker "defg5678"}})]}))
                :tasks))))
   (testing "should handle a plan with a on_failure configuration and multiple sub-steps"
     (is (= [{:name "git (get)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
-            {:name "version (get)" :start 1134567890000 :end 1134567890000 :worker "defg5678"}]
+            {:name "version (get)" :start 1334567890000 :end 1334567890000 :worker "defg5678"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:on_failure {:do [{:id "609a8bdf"
                                                                                     :get {:name "git"}}
                                                                                    {:id "901adeef"
@@ -162,7 +162,7 @@
                                                                                :selected_worker "abcd1234"}})
                                                              (an-event {:event "selected-worker"
                                                                         :data {:origin {:id "901adeef"}
-                                                                               :time 1134567890
+                                                                               :time 1334567890
                                                                                :selected_worker "defg5678"}})]}))
                :tasks))))
   (testing "should handle a task with retry configuration"
@@ -184,10 +184,10 @@
   (testing "should number multiple calls of the same resource if same type"
     (is (= [{:name "git #1 (get)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
             {:name "git #2 (get)" :start 1334567890000 :end 1334567890000 :worker "defg5678"}]
-           (-> (sut/concourse->build (a-build-with {:plan {:do [{:retry [{:id "609a8bdf"
-                                                                          :get {:name "git"}}
-                                                                         {:id "901adeef"
-                                                                          :get {:name "git"}}]}]}
+           (-> (sut/concourse->build (a-build-with {:plan {:do [{:id "609a8bdf"
+                                                                 :get {:name "git"}}
+                                                                {:id "901adeef"
+                                                                 :get {:name "git"}}]}
                                                     :events [(an-event {:event "selected-worker"
                                                                         :data {:origin {:id "609a8bdf"}
                                                                                :time 1234567890
@@ -196,6 +196,29 @@
                                                                         :data {:origin {:id "901adeef"}
                                                                                :time 1334567890
                                                                                :selected_worker "defg5678"}})]}))
+               :tasks))))
+  (testing "should sort tasks by start time"
+    (is (= [{:name "git #1 (get)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
+            {:name "git (put)" :start 1334567890000 :end 1334567890000 :worker "defg5678"}
+            {:name "git #2 (get)" :start 1344567890000 :end 1344567890000 :worker "dfgh6789"}]
+           (-> (sut/concourse->build (a-build-with {:plan {:do [{:id "609a8bdf"
+                                                                 :get {:name "git"}}
+                                                                {:on_success {:step {:id "901adeef"
+                                                                                     :put {:name "git"}}
+                                                                              :on_success {:id "0def898"
+                                                                                           :get {:name "git"}}}}]}
+                                                    :events [(an-event {:event "selected-worker"
+                                                                        :data {:origin {:id "609a8bdf"}
+                                                                               :time 1234567890
+                                                                               :selected_worker "abcd1234"}})
+                                                             (an-event {:event "selected-worker"
+                                                                        :data {:origin {:id "901adeef"}
+                                                                               :time 1334567890
+                                                                               :selected_worker "defg5678"}})
+                                                             (an-event {:event "selected-worker"
+                                                                        :data {:origin {:id "0def898"}
+                                                                               :time 1344567890
+                                                                               :selected_worker "dfgh6789"}})]}))
                :tasks))))
   (testing "should not number multiple calls of the same resource if type is different"
     (is (= [{:name "git (put)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
