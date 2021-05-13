@@ -197,6 +197,22 @@
                                                                                :time 1334567890
                                                                                :selected_worker "defg5678"}})]}))
                :tasks))))
+  (testing "should not number multiple calls of the same resource if type is different"
+    (is (= [{:name "git (put)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}
+            {:name "git (get)" :start 1334567890000 :end 1334567890000 :worker "defg5678"}]
+           (-> (sut/concourse->build (a-build-with {:plan {:do [{:retry [{:id "609a8bdf"
+                                                                          :put {:name "git"}}
+                                                                         {:id "901adeef"
+                                                                          :get {:name "git"}}]}]}
+                                                    :events [(an-event {:event "selected-worker"
+                                                                        :data {:origin {:id "609a8bdf"}
+                                                                               :time 1234567890
+                                                                               :selected_worker "abcd1234"}})
+                                                             (an-event {:event "selected-worker"
+                                                                        :data {:origin {:id "901adeef"}
+                                                                               :time 1334567890
+                                                                               :selected_worker "defg5678"}})]}))
+               :tasks))))
   (testing "should handle a set_pipeline step"
     (is (= [{:name "my-pipeline (set_pipeline)" :start 1234567890000 :end 1234567890000 :worker "abcd1234"}]
            (-> (sut/concourse->build (a-build-with {:plan {:do [{:id "609a8bdf"

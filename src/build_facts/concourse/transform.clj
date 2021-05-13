@@ -65,7 +65,7 @@
     :else [(extract-step entry :task)]))
 
 (defn- unique-step-names [steps]
-  (->> (group-by :name steps)
+  (->> (group-by #(select-keys % [:name :type]) steps)
        (mapcat (fn [[_ same-name-steps]] (if (= 1 (count same-name-steps))
                                            same-name-steps
                                            (map-indexed (fn [idx step]
