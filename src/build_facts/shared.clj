@@ -18,7 +18,7 @@
     :id :output]
    [nil "--splunk" "Output builds in Splunk HTTP Event Collector (HEC) format"
     :id :splunkFormat?]
-   [nil "--state PATH" "Path to state file for resuming after last sync"
+   [nil "--state PATH" "Path to state file for resuming after last sync. Will be created on the first sync."
     :id :state-file-path]
    ["-h" "--help"]])
 
