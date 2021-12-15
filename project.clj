@@ -4,9 +4,9 @@
   :license {:name "BSD 2-Clause"
             :url "http://opensource.org/licenses/BSD-2-Clause"}
   :dependencies [[org.clojure/clojure "1.10.3"]
-                 [org.clojure/tools.logging "1.2.1"]
-                 [org.apache.logging.log4j/log4j-api "2.15.0"]
-                 [org.apache.logging.log4j/log4j-core "2.15.0"]
+                 [org.clojure/tools.logging "1.2.2"]
+                 [org.apache.logging.log4j/log4j-api "2.16.0"]
+                 [org.apache.logging.log4j/log4j-core "2.16.0"]
                  [clj-http "3.12.3"]
                  [clj-time "0.15.2"]
                  [cheshire "5.10.1"]
