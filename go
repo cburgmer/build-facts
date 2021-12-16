@@ -28,10 +28,15 @@ goal_test_smoke() {
     "${SCRIPT_DIR}/test/smoke/test_concourse.sh"
 }
 
+goal_audit() {
+    "${SCRIPT_DIR}/lein" nvd check
+}
+
 goal_test() {
     goal_lint
     goal_test_unit
     goal_test_smoke
+    goal_audit
 }
 
 goal_make_release() {

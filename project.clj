@@ -14,12 +14,13 @@
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/tools.cli "1.0.206"]
                  [progrock "0.1.2"]
-                 [uritemplate-clj "1.3.0"]
+                 [uritemplate-clj "1.3.0" :exclusions [[ring/ring-jetty-adapter]]]
                  [wharf "0.2.0-20141115.032457-2"]]
   :main build-facts.main
   :aot [build-facts.main]
   :profiles {:dev {:dependencies [[clj-http-fake "1.0.3"]]
-                   :plugins [[lein-ancient "1.0.0-RC3"]]}
+                   :plugins [[lein-ancient "1.0.0-RC3"]
+                             [lein-nvd "1.9.0"]]}
              :test {:resource-paths ["test/resources"]}}
   :jvm-opts ["-Dclojure.tools.logging.factory=clojure.tools.logging.impl/log4j2-factory"
              "--illegal-access=deny"]) ; https://clojure.org/guides/faq#illegal_access
