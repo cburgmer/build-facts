@@ -1,6 +1,6 @@
-git
-promoted-builds
-git-client
-parameterized-trigger
-build-pipeline-plugin
-dashboard-view
+git@4.10.3
+promoted-builds@3.11
+git-client@3.11.0
+parameterized-trigger@2.43
+build-pipeline-plugin@1.5.8
+dashboard-view@2.18
