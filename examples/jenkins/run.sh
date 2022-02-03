@@ -33,8 +33,15 @@ hint_at_logs() {
     fi
 }
 
+docker_compose() {
+    (
+        cd "$SCRIPT_DIR"
+        docker-compose "$@"
+    )
+}
+
 container_exists() {
-    if [[ -z $(docker container ls -q -a --filter name=build_facts_jenkins_example) ]]; then
+    if [[ -z $(docker_compose ps -q) ]]; then
         return 1
     else
         return 0
@@ -42,30 +49,14 @@ container_exists() {
 }
 
 provision_container() {
-    docker container create -p 8080:8080 --name build_facts_jenkins_example jenkins/jenkins:2.263.4-lts-alpine
+    docker_compose up --no-start
 }
 
 start_server() {
-    local check_path="${1:-/}"
     announce "Starting docker image"
-    docker container start build_facts_jenkins_example &>> "$TMP_LOG"
+    docker_compose up -d &>> "$TMP_LOG"
 
-    wait_for_server "${BASE_URL}${check_path}"
-    echo " done"
-}
-
-provision_jenkins() {
-    announce "Installing plugins"
-    docker container exec build_facts_jenkins_example /usr/local/bin/install-plugins.sh git promoted-builds git-client parameterized-trigger build-pipeline-plugin dashboard-view &>> "$TMP_LOG"
-    echo " done"
-
-    announce "Disabling Jenkins security"
-    sleep 10
-    # shellcheck disable=SC2129
-    docker container exec build_facts_jenkins_example rm /var/jenkins_home/config.xml &>> "$TMP_LOG"
-    docker container exec build_facts_jenkins_example cp -p /var/jenkins_home/jenkins.install.UpgradeWizard.state /var/jenkins_home/jenkins.install.InstallUtil.lastExecVersion &>> "$TMP_LOG"
-    docker container restart build_facts_jenkins_example &>> "$TMP_LOG"
-    wait_for_server "$BASE_URL"
+    wait_for_server "${BASE_URL}/queue/api/json"
     echo " done"
 }
 
@@ -107,7 +98,7 @@ configure_pipeline() {
 }
 
 jenkins_queue_length() {
-    curl --silent http://localhost:8080/queue/api/json | python -c "import json; import sys; print len(json.loads(sys.stdin.read())['items'])"
+    curl --silent "${BASE_URL}/queue/api/json" | python -c "import json; import sys; print len(json.loads(sys.stdin.read())['items'])"
 }
 
 build_queue_empty() {
@@ -146,8 +137,7 @@ goal_start() {
         announce "Provisioning docker image"
         echo
         provision_container
-        start_server "/favicon.ico"
-        provision_jenkins
+        start_server
         configure_pipeline
         run_builds
     else
@@ -158,19 +148,19 @@ goal_start() {
 
 goal_stop() {
     announce "Stopping docker image"
-    docker container stop build_facts_jenkins_example &>> "$TMP_LOG"
+    docker_compose stop &>> "$TMP_LOG"
     echo " done"
 }
 
 goal_destroy() {
     announce "Destroying docker container"
-    docker container stop build_facts_jenkins_example &>> "$TMP_LOG"
-    docker container rm build_facts_jenkins_example &>> "$TMP_LOG"
+    docker_compose down &>> "$TMP_LOG"
     echo " done"
 }
 
 goal_purge() {
     announce "Purging docker images"
+    docker images -q jenkins_jenkins | xargs docker rmi &>> "$TMP_LOG"
     docker images -q jenkins/jenkins | xargs docker rmi &>> "$TMP_LOG"
     echo " done"
 }
