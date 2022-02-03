@@ -2,14 +2,14 @@ version: "2.4"
 
 services:
   server:
-    image: jetbrains/teamcity-server:2020.2.2
+    image: jetbrains/teamcity-server:2021.2.2
     volumes:
       - ./data:/data/teamcity_server/datadir
     ports:
       - "8111:8111"
 
   agent:
-    image: jetbrains/teamcity-minimal-agent:2020.2.2
+    image: jetbrains/teamcity-minimal-agent:2021.2.2
     restart: unless-stopped
     environment:
       SERVER_URL: "http://server:8111"

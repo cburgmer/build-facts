@@ -20,7 +20,7 @@ services:
       - CONCOURSE_WORKER_CONTAINERD_DNS_SERVER=8.8.8.8
       - CONCOURSE_WORKER_RUNTIME=containerd
   db:
-    image: postgres:13.2
+    image: postgres:14.1
     environment:
       - POSTGRES_USER=concourse
       - POSTGRES_PASSWORD=password
