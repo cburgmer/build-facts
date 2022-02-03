@@ -15,14 +15,11 @@ for synced build events.
 
 ### How to
 
+#### Run an build server setup
+
 Bring up a server (adapt with the desired build server)
 
     $ ./jenkins/run.sh start
-
-Sync data
-
-    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.5.4/build-facts-0.5.4-standalone.jar
-    $ java -jar build-facts-0.5.4-standalone.jar jenkins http://localhost:8080
 
 Stop a server
 
@@ -34,6 +31,31 @@ Remove container and purge images
 
     $ ./jenkins/run.sh destroy
     $ ./jenkins/run.sh purge
+
+
+#### Sync data
+
+##### Jenkins
+
+Sync data
+
+    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.5.4/build-facts-0.5.4-standalone.jar
+    $ java -jar build-facts-0.5.4-standalone.jar jenkins http://localhost:8080
+
+##### Concourse
+
+Sync data
+
+    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.5.4/build-facts-0.5.4-standalone.jar
+    $ fly login --target build-facts -c http://localhost:8080
+    $ java -jar build-facts-0.5.4-standalone.jar concourse build-facts 'http://localhost:8080'
+
+##### TeamCity
+
+Sync data
+
+    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.5.4/build-facts-0.5.4-standalone.jar
+    $ TEAMCITY_USER=admin TEAMCITY_PASSWORD=admin java -jar build-facts-0.5.4-standalone.jar teamcity 'http://localhost:8111' -p SimpleSetup
 
 
 ### Splunk
