@@ -31,20 +31,19 @@
        (filter #(= triggering-job-name (:job_name %)))
        first))
 
-(defn- triggering-build [config {:keys [team_name pipeline_name] :as job} resources {:keys [name passed]}]
+(defn- triggering-build [config {:keys [team_name pipeline_name]} resources [input input-versions]]
   (let [build-inputs (:inputs resources)
         build-input (->> build-inputs
-                         (filter #(= name (:name %)))
+                         (filter #(= (:name input) (:name %)))
                          first)
         version (:version build-input)
-        input-versions (api/input-versions config team_name pipeline_name name)
         input-version (->> input-versions
                            (filter #(= version (:version %)))
                            first)
-        builds-with-input (api/input-to config team_name pipeline_name name (:id input-version))]
-    (first (map #(triggering-build-in-builds-with-same-resource-version % builds-with-input) passed))))
+        builds-with-input (api/input-to config team_name pipeline_name (:name input) (:id input-version))]
+    (first (map #(triggering-build-in-builds-with-same-resource-version % builds-with-input) (:passed input)))))
 
-(defn- with-build-info [config job {:keys [id] :as build}]
+(defn- with-build-info [config job inputs-and-versions {:keys [id] :as build}]
   (let [plan (delay (api/build-plan config id))
         resources (delay (api/build-resources config id))]
     {:build build
@@ -53,7 +52,11 @@
      :events (delay (when @plan
                       (api/build-events config id)))
      :triggered-by (delay (map #(triggering-build config job @resources %)
-                               (:inputs job)))}))
+                               inputs-and-versions))}))
+
+(defn- job->inputs-and-versions [config {:keys [team_name pipeline_name inputs]}]
+  (map (fn [input] [input (api/input-versions config team_name pipeline_name (:name input))])
+       inputs))
 
 (defn unchunk [s]
   (when (seq s)
@@ -63,10 +66,11 @@
 (defn- builds-for-job [config {:keys [pipeline_name name] :as job}]
   [(transform/full-job-name pipeline_name name)
    (lazy-seq ; don't do an api call yet, helps the progress bar to render early
-    (->> (api/all-builds-for-job config job)
-         unchunk                              ; avoid triggering too many resource requests due to map's chunking for vectors
-         (map #(with-build-info config job %))
-         (map transform/concourse->build)))])
+    (let [inputs-and-versions (job->inputs-and-versions config job)]
+      (->> (api/all-builds-for-job config job)
+           unchunk                              ; avoid triggering too many resource requests due to map's chunking for vectors
+           (map #(with-build-info config job inputs-and-versions %))
+           (map transform/concourse->build))))])
 
 (defn concourse-builds [config]
   (api/test-login config)
