@@ -31,17 +31,19 @@
        (filter #(= triggering-job-name (:job_name %)))
        first))
 
-(defn- triggering-build [resources {:keys [input input-versions]}]
-  (let [build-inputs (:inputs resources)
-        build-input (->> build-inputs
-                         (filter #(= (:name input) (:name %)))
-                         first)
-        version (:version build-input)
-        input-version (->> input-versions
-                           (filter #(= version (:version %)))
-                           first)
-        builds-with-input @(:input-to input-version)]
-    (first (map #(triggering-build-in-builds-with-same-resource-version % builds-with-input) (:passed input)))))
+(defn- build->input-version [resources input-name]
+  (->> (:inputs resources)
+       (filter #(= input-name (:name %)))
+       first
+       :version))
+
+(defn- triggering-build [resources {:keys [input-name from-previous-jobs versions-with-context]}]
+  (let [input-version (build->input-version resources input-name)
+        version-with-context (->> versions-with-context
+                                  (filter #(= input-version (:version %)))
+                                  first)
+        builds-with-input @(:input-to version-with-context)]
+    (first (map #(triggering-build-in-builds-with-same-resource-version % builds-with-input) from-previous-jobs))))
 
 (defn- with-build-info [config inputs-and-versions {:keys [id] :as build}]
   (let [plan (delay (api/build-plan config id))
@@ -60,8 +62,9 @@
                                         :input-to (delay (api/input-to config team_name pipeline_name input_name id))}))))
 
 (defn- job->inputs-and-versions [config {:keys [team_name pipeline_name inputs]}]
-  (map (fn [input] {:input input
-                    :input-versions (aggregate-input-versions config team_name pipeline_name (:name input))})
+  (map (fn [input] {:input-name (:name input)
+                    :from-previous-jobs (:passed input)
+                    :versions-with-context (aggregate-input-versions config team_name pipeline_name (:name input))})
        inputs))
 
 (defn unchunk [s]
