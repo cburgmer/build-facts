@@ -12,10 +12,12 @@
   (fn [_] {:status 200
            :body (j/generate-string body)}))
 
-(defn- a-job [team-name pipeline-name job-name]
-  {:team_name team-name
-   :pipeline_name pipeline-name
-   :name job-name})
+(defn- a-job
+  ([team-name pipeline-name job-name] {:team_name team-name
+                                       :pipeline_name pipeline-name
+                                       :name job-name})
+  ([team-name pipeline-name job-name job] (merge (a-job team-name pipeline-name job-name)
+                                                 job)))
 
 (defn- all-jobs [& jobs]
   ["http://concourse:8000/api/v1/jobs"
@@ -64,6 +66,16 @@
     [(format "http://concourse:8000/api/v1/builds/%s/events" build-id)
      (fn [_] {:status 200
               :body (string/join "\n\n" events)})]))
+
+(defn- some-resource-versions [team-name pipeline-name resource-name & versions]
+  [(format "http://concourse:8000/api/v1/teams/%s/pipelines/%s/resources/%s/versions"
+           team-name pipeline-name resource-name)
+   (successful-json-response versions)])
+
+(defn- some-resource-version-input-to [team-name pipeline-name resource-name id & builds]
+  [(format "http://concourse:8000/api/v1/teams/%s/pipelines/%s/resources/%s/versions/%s/input_to"
+           team-name pipeline-name resource-name id)
+   (successful-json-response builds)])
 
 (defn- valid-session []
   ["http://concourse:8000/api/v1/user"
@@ -202,11 +214,8 @@
                                                                 :start_time (unix-time-in-s 2016 1 1 10 0 0)
                                                                 :end_time (unix-time-in-s 2016 1 1 10 0 1)})
                                                   (some-resources 4)
-                                                  (some-resources 10)
                                                   (some-plan 4)
-                                                  (some-plan 10)
-                                                  (some-events 4)
-                                                  (some-events 10))
+                                                  (some-events 4))
       (is (= (sut/concourse-builds {:base-url "http://concourse:8000"
                                     :bearer-token "fake-token"
                                     :team-name "my-team"})
@@ -490,4 +499,37 @@
                   :build-id "42"
                   :outcome "fail"
                   :start 1451642400000
-                  :end 1451642401000}]]))))))
+                  :end 1451642401000}]])))))
+
+  (testing "should find triggering build for job with triggering inputs"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"
+                                                                   {:inputs [{:name :git :trigger true :passed ["previous-job"]}]})
+                                                            (a-job "my-team" "my-pipeline" "previous-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "aborted"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4
+                                                                  {:name "git"
+                                                                   :version {:ref "abcd1234"}})
+                                                  (some-plan 4)
+                                                  (some-events 4)
+                                                  (some-resource-versions "my-team" "my-pipeline" "git"
+                                                                          {:id 1234 :version {:ref "abcd1234"}})
+                                                  (some-resource-version-input-to "my-team" "my-pipeline" "git" 1234
+                                                                                  {:id 4 :pipeline_name "my-pipeline" :job_name "my-job" :name "42"}
+                                                                                  {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277"}))
+      (is (= ["my-pipeline my-job"
+              [{:job-name "my-pipeline my-job"
+                :build-id "42"
+                :outcome "fail"
+                :start 1451642400000
+                :end 1451642401000
+                :inputs [{:source-id "git[ref]" :revision "abcd1234"}]
+                :triggered-by [{:job-name "my-pipeline previous-job" :build-id "4277"}]}]]
+             (first (sut/concourse-builds {:base-url "http://concourse:8000"
+                                           :bearer-token "fake-token"
+                                           :team-name "my-team"})))))))

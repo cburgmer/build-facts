@@ -26,13 +26,34 @@
                       concourse-target
                       concourse-target))))))
 
-(defn- with-build-info [config {:keys [id] :as build}]
-  (let [plan (delay (api/build-plan config id))]
+(defn- triggering-build-in-builds-with-same-resource-version [triggering-job-name builds-with-input]
+  (->> builds-with-input
+       (filter #(= triggering-job-name (:job_name %)))
+       first))
+
+(defn- triggering-build [config {:keys [team_name pipeline_name] :as job} resources {:keys [name passed]}]
+  (let [build-inputs (:inputs resources)
+        build-input (->> build-inputs
+                         (filter #(= name (:name %)))
+                         first)
+        version (:version build-input)
+        input-versions (api/input-versions config team_name pipeline_name name)
+        input-version (->> input-versions
+                           (filter #(= version (:version %)))
+                           first)
+        builds-with-input (api/input-to config team_name pipeline_name name (:id input-version))]
+    (first (map #(triggering-build-in-builds-with-same-resource-version % builds-with-input) passed))))
+
+(defn- with-build-info [config job {:keys [id] :as build}]
+  (let [plan (delay (api/build-plan config id))
+        resources (delay (api/build-resources config id))]
     {:build build
-     :resources (delay (api/build-resources config id))
+     :resources (delay @resources)
      :plan plan
      :events (delay (when @plan
-                      (api/build-events config id)))}))
+                      (api/build-events config id)))
+     :triggered-by (delay (map #(triggering-build config job @resources %)
+                               (:inputs job)))}))
 
 (defn unchunk [s]
   (when (seq s)
@@ -44,7 +65,7 @@
    (lazy-seq ; don't do an api call yet, helps the progress bar to render early
     (->> (api/all-builds-for-job config job)
          unchunk                              ; avoid triggering too many resource requests due to map's chunking for vectors
-         (map #(with-build-info config %))
+         (map #(with-build-info config job %))
          (map transform/concourse->build)))])
 
 (defn concourse-builds [config]

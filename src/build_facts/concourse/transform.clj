@@ -90,12 +90,17 @@
                     selected-worker (assoc :worker selected-worker)))))
          (sort-by :start))))
 
-(defn concourse->build [{:keys [build resources plan events]}]
+(defn- triggered-by-from [triggered-by]
+  (map (fn [{:keys [pipeline_name job_name name]}] {:job-name (full-job-name pipeline_name job_name) :build-id name}) triggered-by))
+
+(defn concourse->build [{:keys [build resources plan events triggered-by]}]
   (let [the-build (build-from build)]
     (if (= "ongoing" (:outcome the-build))
       the-build
       (let [inputs (not-empty (inputs-from @resources))
-            tasks (not-empty (tasks-from @plan @events))]
+            tasks (not-empty (tasks-from @plan @events))
+            triggered-by (not-empty (triggered-by-from @triggered-by))]
         (cond-> the-build
           inputs (assoc :inputs inputs)
-          tasks (assoc :tasks tasks))))))
+          tasks (assoc :tasks tasks)
+          triggered-by (assoc :triggered-by triggered-by))))))

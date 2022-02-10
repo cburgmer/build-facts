@@ -6,47 +6,43 @@
 (defn- an-event [event-data]
   {:data (j/generate-string event-data)})
 
-(defn- a-build-with [{:keys [build resources plan events]}]
+(defn- a-build-with [{:keys [build resources plan events triggered-by]}]
   (cond-> {:build {:status "succeeded"}
            :resources (delay {:inputs []})
            :plan (delay)
-           :events (delay)}
+           :events (delay)
+           :triggered-by (delay)}
     build (assoc :build build)
     resources (assoc :resources (delay resources))
     plan (assoc :plan (delay plan))
-    events (assoc :events (delay events))))
+    events (assoc :events (delay events))
+    triggered-by (assoc :triggered-by (delay triggered-by))))
 
 
 (deftest test-concourse-transform
   (testing "handles inputs with multiple keys"
     (is (= [{:source-id "something[another-key,key1]"
              :revision "more val,some val"}]
-           (:inputs (sut/concourse->build {:build {:status "succeeded"}
-                                           :resources (delay {:inputs [{:name "something"
-                                                                        :version {:key1 "some val"
-                                                                                  :another-key "more val"}}]})
-                                           :plan (delay)
-                                           :events (delay)})))))
+           (:inputs (sut/concourse->build (a-build-with {:build {:status "succeeded"}
+                                                         :resources {:inputs [{:name "something"
+                                                                               :version {:key1 "some val"
+                                                                                         :another-key "more val"}}]}}))))))
   (testing "should not conflate different version with similar values"
-    (let [inputs (:inputs (sut/concourse->build {:build {:status "succeeded"}
-                                                 :resources (delay {:inputs [{:name "first"
-                                                                              :version {:a ","
-                                                                                        :b ""}}
-                                                                             {:name "second"
-                                                                              :version {:a ""
-                                                                                        :b ","}}]})
-                                                 :plan (delay)
-                                                 :events (delay)}))]
+    (let [inputs (:inputs (sut/concourse->build (a-build-with {:build {:status "succeeded"}
+                                                               :resources {:inputs [{:name "first"
+                                                                                     :version {:a ","
+                                                                                               :b ""}}
+                                                                                    {:name "second"
+                                                                                     :version {:a ""
+                                                                                               :b ","}}]}})))]
       (is (not= (:revision (first inputs))
                 (:revision (second inputs))))))
   (testing "should escape soundly"
     (is (= "%252C,%2C"
-           (-> (sut/concourse->build {:build {:status "succeeded"}
-                                      :resources (delay {:inputs [{:name "first"
-                                                                   :version {:a "%2C"
-                                                                             :b ","}}]})
-                                      :plan (delay)
-                                      :events (delay)})
+           (-> (sut/concourse->build (a-build-with {:build {:status "succeeded"}
+                                                    :resources {:inputs [{:name "first"
+                                                                          :version {:a "%2C"
+                                                                                    :b ","}}]}}))
                :inputs
                first
                :revision))))
@@ -244,4 +240,7 @@
                                                                         :data {:origin {:id "609a8bdf"}
                                                                                :time 1234567890
                                                                                :selected_worker "abcd1234"}})]}))
-               :tasks)))))
+               :tasks))))
+  (testing "should handle triggered-by"
+    (is (= [{:job-name "some-pipeline triggering-job" :build-id "1234"}]
+           (:triggered-by (sut/concourse->build (a-build-with {:triggered-by [{:pipeline_name "some-pipeline" :job_name "triggering-job" :name "1234"}]})))))))

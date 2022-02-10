@@ -84,3 +84,18 @@
       ;; https://github.com/dakrone/clj-http/blob/dd15359451645f677b3e294164cf70330b92241d/src/clj_http/core.clj#L456
       (.shutdown cm)
       events)))
+
+(defn input-versions [config team_name pipeline_name resource_name]
+  (get-json (templ/uritemplate "/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions"
+                               {"team_name" team_name
+                                "pipeline_name" pipeline_name
+                                "resource_name" resource_name})
+            config))
+
+(defn input-to [config team_name pipeline_name resource_name version_id]
+  (get-json (templ/uritemplate "/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{version_id}/input_to"
+                               {"team_name" team_name
+                                "pipeline_name" pipeline_name
+                                "resource_name" resource_name
+                                "version_id" version_id})
+            config))
