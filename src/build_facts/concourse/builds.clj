@@ -31,14 +31,15 @@
        (filter #(= triggering-job-name (:job_name %)))
        first))
 
-(defn- build->input-version [resources input-name]
+(defn- build->triggered-input-version [resources input-name]
   (->> (:inputs resources)
        (filter #(= input-name (:name %)))
+       (filter #(= true (:first_occurrence %)))
        first
        :version))
 
 (defn- triggering-build [resources {:keys [input-name from-previous-jobs versions-with-context]}]
-  (when-let [input-version (build->input-version resources input-name)]
+  (when-let [input-version (build->triggered-input-version resources input-name)]
     (let [version-with-context (->> versions-with-context
                                     (filter #(= input-version (:version %)))
                                     first)
