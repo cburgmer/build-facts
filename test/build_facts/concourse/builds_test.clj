@@ -522,14 +522,28 @@
                                                   (some-resource-version-input-to "my-team" "my-pipeline" "git" 1234
                                                                                   {:id 4 :pipeline_name "my-pipeline" :job_name "my-job" :name "42"}
                                                                                   {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277"}))
-      (is (= ["my-pipeline my-job"
-              [{:job-name "my-pipeline my-job"
-                :build-id "42"
-                :outcome "fail"
-                :start 1451642400000
-                :end 1451642401000
-                :inputs [{:source-id "git[ref]" :revision "abcd1234"}]
-                :triggered-by [{:job-name "my-pipeline previous-job" :build-id "4277"}]}]]
-             (first (sut/concourse-builds {:base-url "http://concourse:8000"
-                                           :bearer-token "fake-token"
-                                           :team-name "my-team"})))))))
+      (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
+                                                  :bearer-token "fake-token"
+                                                  :team-name "my-team"})]
+        (is (= [{:job-name "my-pipeline previous-job" :build-id "4277"}]
+               (:triggered-by build))))))
+
+  (testing "should handle an input missing from an older build (if configured in a newer version of the job)"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"
+                                                                   {:inputs [{:name :git :trigger true :passed ["previous-job"]}]}))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "aborted"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4)
+                                                  (some-plan 4)
+                                                  (some-events 4)
+                                                  (some-resource-versions "my-team" "my-pipeline" "git"
+                                                                          {:id 1234 :version {:ref "abcd1234"}}))
+      (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
+                                                  :bearer-token "fake-token"
+                                                  :team-name "my-team"})]
+        (is (nil? (:triggered-by build)))))))

@@ -38,12 +38,12 @@
        :version))
 
 (defn- triggering-build [resources {:keys [input-name from-previous-jobs versions-with-context]}]
-  (let [input-version (build->input-version resources input-name)
-        version-with-context (->> versions-with-context
-                                  (filter #(= input-version (:version %)))
-                                  first)
-        builds-with-input @(:input-to version-with-context)]
-    (first (map #(triggering-build-in-builds-with-same-resource-version % builds-with-input) from-previous-jobs))))
+  (when-let [input-version (build->input-version resources input-name)]
+    (let [version-with-context (->> versions-with-context
+                                    (filter #(= input-version (:version %)))
+                                    first)
+          builds-with-input @(:input-to version-with-context)]
+      [(first (map #(triggering-build-in-builds-with-same-resource-version % builds-with-input) from-previous-jobs))])))
 
 (defn- with-build-info [config inputs-and-versions {:keys [id] :as build}]
   (let [plan (delay (api/build-plan config id))
@@ -53,8 +53,8 @@
      :plan plan
      :events (delay (when @plan
                       (api/build-events config id)))
-     :triggered-by (delay (map #(triggering-build @resources %)
-                               inputs-and-versions))}))
+     :triggered-by (delay (mapcat #(triggering-build @resources %)
+                                  inputs-and-versions))}))
 
 (defn- aggregate-input-versions [config team_name pipeline_name input_name]
   (->> (api/input-versions config team_name pipeline_name input_name)
