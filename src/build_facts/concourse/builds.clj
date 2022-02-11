@@ -44,7 +44,7 @@
                                     (filter #(= input-version (:version %)))
                                     first)
           builds-with-input @(:input-to version-with-context)]
-      [(first (map #(triggering-build-in-builds-with-same-resource-version % builds-with-input) from-previous-jobs))])))
+      (map #(triggering-build-in-builds-with-same-resource-version % builds-with-input) from-previous-jobs))))
 
 (defn- with-build-info [config inputs-and-versions {:keys [id] :as build}]
   (let [plan (delay (api/build-plan config id))
