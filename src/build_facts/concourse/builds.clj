@@ -3,7 +3,8 @@
              [api :as api]
              [transform :as transform]]
             [clj-yaml.core :as yaml]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [clojure.tools.logging :as log]))
 
 (defn config-for [concourse-target]
   (let [flyrc (io/file (System/getProperty "user.home") ".flyrc")
@@ -42,12 +43,13 @@
 
 (defn- triggering-build [resources {:keys [input-name from-previous-jobs versions-with-context]}]
   (when-let [input-version (build->triggered-input-version resources input-name)]
-    (let [version-with-context (->> versions-with-context
+    (if-let [version-with-context (->> versions-with-context
                                     (filter #(= input-version (:version %)))
-                                    first)
-          builds-with-input (concat @(:input-to version-with-context)
-                                    @(:output-of version-with-context))]
-      (map #(triggering-build-in-builds-with-same-resource-version % builds-with-input) from-previous-jobs))))
+                                    first)]
+      (let [builds-with-input (concat @(:input-to version-with-context)
+                                      @(:output-of version-with-context))]
+        (map #(triggering-build-in-builds-with-same-resource-version % builds-with-input) from-previous-jobs))
+      (log/warnf "No triggered-by information could be deduced as version history did not contain the relevant version %s" (prn-str input-version)))))
 
 (defn- with-build-info [config inputs-and-versions {:keys [id] :as build}]
   (let [plan (delay (api/build-plan config id))

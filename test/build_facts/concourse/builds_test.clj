@@ -800,4 +800,27 @@
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
                                                   :team-name "my-team"})]
+        (is (nil? (:triggered-by build))))))
+
+  (testing "should fail gracefully if version cannot be found"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"
+                                                                   {:inputs [{:name :git :trigger true :passed ["previous-job"]}]})
+                                                            (a-job "my-team" "my-pipeline" "previous-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "aborted"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4
+                                                                  {:name "git"
+                                                                   :version {:ref "abcd1234"}
+                                                                   :first_occurrence true})
+                                                  (some-plan 4)
+                                                  (some-events 4)
+                                                  (some-resource-versions "my-team" "my-pipeline" "git"))
+      (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
+                                                  :bearer-token "fake-token"
+                                                  :team-name "my-team"})]
         (is (nil? (:triggered-by build)))))))
