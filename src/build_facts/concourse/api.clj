@@ -99,3 +99,11 @@
                                 "resource_name" resource_name
                                 "version_id" version_id})
             config))
+
+(defn output-of [config team_name pipeline_name resource_name version_id]
+  (get-json (templ/uritemplate "/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{version_id}/output_of"
+                               {"team_name" team_name
+                                "pipeline_name" pipeline_name
+                                "resource_name" resource_name
+                                "version_id" version_id})
+            config))

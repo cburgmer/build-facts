@@ -47,7 +47,8 @@
     (let [version-with-context (->> versions-with-context
                                     (filter #(= input-version (:version %)))
                                     first)
-          builds-with-input @(:input-to version-with-context)]
+          builds-with-input (concat @(:input-to version-with-context)
+                                    @(:output-of version-with-context))]
       (map #(triggering-build-in-builds-with-same-resource-version % builds-with-input) from-previous-jobs))))
 
 (defn- with-build-info [config inputs-and-versions {:keys [id] :as build}]
@@ -65,7 +66,8 @@
 (defn- aggregate-input-versions [config team_name pipeline_name input_name]
   (->> (api/input-versions config team_name pipeline_name input_name)
        (map (fn [{:keys [id version]}] {:version version
-                                        :input-to (delay (api/input-to config team_name pipeline_name input_name id))}))))
+                                        :input-to (delay (api/input-to config team_name pipeline_name input_name id))
+                                        :output-of (delay (api/output-of config team_name pipeline_name input_name id))}))))
 
 (defn- job->inputs-and-versions [config {:keys [team_name pipeline_name inputs]}]
   (map (fn [input] {:input-name (:name input)
