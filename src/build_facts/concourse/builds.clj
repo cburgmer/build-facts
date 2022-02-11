@@ -68,11 +68,12 @@
                                         :output-of (delay (api/output-of config team_name pipeline_name input_name id))}))))
 
 (defn- job->inputs-and-versions [config {:keys [team_name pipeline_name inputs]}]
-  (map (fn [input] {:input-name (:name input)
+  (->> inputs
+       (filter #(:passed %))
+       (map (fn [input] {:input-name (:name input)
                     :from-previous-jobs (:passed input)
                     :triggers-automatically? (:trigger input)
-                    :versions-with-context (aggregate-input-versions config team_name pipeline_name (:name input))})
-       inputs))
+                    :versions-with-context (aggregate-input-versions config team_name pipeline_name (:name input))}))))
 
 (defn unchunk [s]
   (when (seq s)
