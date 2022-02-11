@@ -58,7 +58,6 @@
      :events (delay (when @plan
                       (api/build-events config id)))
      :triggered-by (delay (->> inputs-and-versions
-                               (filter #(:triggers-automatically? %))
                                (mapcat #(triggering-build @resources %))))}))
 
 (defn- aggregate-input-versions [config team_name pipeline_name input_name]
@@ -70,9 +69,9 @@
 (defn- job->inputs-and-versions [config {:keys [team_name pipeline_name inputs]}]
   (->> inputs
        (filter #(:passed %))
+       (filter #(:trigger %))
        (map (fn [input] {:input-name (:name input)
                     :from-previous-jobs (:passed input)
-                    :triggers-automatically? (:trigger input)
                     :versions-with-context (aggregate-input-versions config team_name pipeline_name (:name input))}))))
 
 (defn unchunk [s]
