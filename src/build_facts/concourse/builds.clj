@@ -54,8 +54,9 @@
      :plan plan
      :events (delay (when @plan
                       (api/build-events config id)))
-     :triggered-by (delay (mapcat #(triggering-build @resources %)
-                                  inputs-and-versions))}))
+     :triggered-by (delay (->> inputs-and-versions
+                               (filter #(:triggers-automatically? %))
+                               (mapcat #(triggering-build @resources %))))}))
 
 (defn- aggregate-input-versions [config team_name pipeline_name input_name]
   (->> (api/input-versions config team_name pipeline_name input_name)
@@ -65,6 +66,7 @@
 (defn- job->inputs-and-versions [config {:keys [team_name pipeline_name inputs]}]
   (map (fn [input] {:input-name (:name input)
                     :from-previous-jobs (:passed input)
+                    :triggers-automatically? (:trigger input)
                     :versions-with-context (aggregate-input-versions config team_name pipeline_name (:name input))})
        inputs))
 
