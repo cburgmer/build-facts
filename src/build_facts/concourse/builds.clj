@@ -29,6 +29,7 @@
 (defn- triggering-build-in-builds-with-same-resource-version [triggering-job-name builds-with-input]
   (->> builds-with-input
        (filter #(= triggering-job-name (:job_name %)))
+       (filter #(not= "user" (:created_by %)))
        first))
 
 (defn- build->triggered-input-version [resources input-name]
