@@ -527,7 +527,7 @@
                                                                           {:id 1234 :version {:ref "abcd1234"}})
                                                   (some-resource-version-input-to "my-team" "my-pipeline" "git" 1234
                                                                                   {:id 4 :pipeline_name "my-pipeline" :job_name "my-job" :name "42"}
-                                                                                  {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277"})
+                                                                                  {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277" :status "succeeded"})
                                                   (some-resource-version-output-of "my-team" "my-pipeline" "git" 1234))
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
@@ -556,7 +556,7 @@
                                                                           {:id 1234 :version {:ref "abcd1234"}})
                                                   (some-resource-version-input-to "my-team" "my-pipeline" "git" 1234)
                                                   (some-resource-version-output-of "my-team" "my-pipeline" "git" 1234
-                                                                                   {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277"}))
+                                                                                   {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277" :status "succeeded"}))
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
                                                   :team-name "my-team"})]
@@ -585,8 +585,8 @@
                                                                           {:id 1234 :version {:ref "abcd1234"}})
                                                   (some-resource-version-input-to "my-team" "my-pipeline" "git" 1234
                                                                                   {:id 4 :pipeline_name "my-pipeline" :job_name "my-job" :name "42"}
-                                                                                  {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277"}
-                                                                                  {:id 3 :pipeline_name "my-pipeline" :job_name "another-job" :name "007"})
+                                                                                  {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277" :status "succeeded"}
+                                                                                  {:id 3 :pipeline_name "my-pipeline" :job_name "another-job" :name "007" :status "succeeded"})
                                                   (some-resource-version-output-of "my-team" "my-pipeline" "git" 1234))
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
@@ -616,7 +616,7 @@
                                                                           {:id 1234 :version {:ref "abcd1234"}})
                                                   (some-resource-version-input-to "my-team" "my-pipeline" "git" 1234
                                                                                   {:id 4 :pipeline_name "my-pipeline" :job_name "my-job" :name "42"}
-                                                                                  {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277"})
+                                                                                  {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277" :status "succeeded"})
                                                   (some-resource-version-output-of "my-team" "my-pipeline" "git" 1234))
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
@@ -682,7 +682,7 @@
                                                   (some-resource-version-input-to "my-team" "my-pipeline" "git" 1234
                                                                                   {:id 4 :pipeline_name "my-pipeline" :job_name "my-job" :name "43"}
                                                                                   {:id 4 :pipeline_name "my-pipeline" :job_name "my-job" :name "42"}
-                                                                                  {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277"})
+                                                                                  {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277" :status "succeeded"})
                                                   (some-resource-version-output-of "my-team" "my-pipeline" "git" 1234))
       (let [[[_, builds]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
@@ -695,7 +695,7 @@
                (map #(select-keys % [:job-name :build-id :triggered-by])
                     builds))))))
 
-  (testing "should correctly detect triggering build of when re-runs exist (triggered by user)"
+  (testing "should correctly detect triggering build when re-run after failed build"
     (fake/with-fake-routes-in-isolation (serve-up (valid-session)
                                                   (all-jobs (a-job "my-team" "my-pipeline" "my-job"
                                                                    {:inputs [{:name :git :trigger true :passed ["previous-job"]}]})
@@ -716,11 +716,42 @@
                                                                           {:id 1234 :version {:ref "abcd1234"}})
                                                   (some-resource-version-input-to "my-team" "my-pipeline" "git" 1234
                                                                                   {:id 4 :pipeline_name "my-pipeline" :job_name "my-job" :name "42"}
-                                                                                  {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277" :created_by "user"}
-                                                                                  {:id 1 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4276"})
+                                                                                  {:id 1 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4276" :status "failed"}
+                                                                                  {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277" :status "succeeded"})
                                                   (some-resource-version-output-of "my-team" "my-pipeline" "git" 1234))
       (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
                                                   :bearer-token "fake-token"
                                                   :team-name "my-team"})]
-        (is (= [{:job-name "my-pipeline previous-job" :build-id "4276"}]
+        (is (= [{:job-name "my-pipeline previous-job" :build-id "4277"}]
+               (:triggered-by build))))))
+
+  (testing "should detected first succeeding build as trigger if (other) successful re-runs exist"
+    (fake/with-fake-routes-in-isolation (serve-up (valid-session)
+                                                  (all-jobs (a-job "my-team" "my-pipeline" "my-job"
+                                                                   {:inputs [{:name :git :trigger true :passed ["previous-job"]}]})
+                                                            (a-job "my-team" "my-pipeline" "previous-job"))
+                                                  (some-builds "my-team" "my-pipeline" "my-job"
+                                                               {:id 4
+                                                                :name "42"
+                                                                :status "aborted"
+                                                                :start_time (unix-time-in-s 2016 1 1 10 0 0)
+                                                                :end_time (unix-time-in-s 2016 1 1 10 0 1)})
+                                                  (some-resources 4
+                                                                  {:name "git"
+                                                                   :version {:ref "abcd1234"}
+                                                                   :first_occurrence true})
+                                                  (some-plan 4)
+                                                  (some-events 4)
+                                                  (some-resource-versions "my-team" "my-pipeline" "git"
+                                                                          {:id 1234 :version {:ref "abcd1234"}})
+                                                  (some-resource-version-input-to "my-team" "my-pipeline" "git" 1234
+                                                                                  {:id 4 :pipeline_name "my-pipeline" :job_name "my-job" :name "42"}
+                                                                                  {:id 1 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4276" :status "failed"}
+                                                                                  {:id 3 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4278" :status "succeeded" :end_time 100}
+                                                                                  {:id 2 :pipeline_name "my-pipeline" :job_name "previous-job" :name "4277" :status "succeeded" :end_time 50})
+                                                  (some-resource-version-output-of "my-team" "my-pipeline" "git" 1234))
+      (let [[[_, [build]]] (sut/concourse-builds {:base-url "http://concourse:8000"
+                                                  :bearer-token "fake-token"
+                                                  :team-name "my-team"})]
+        (is (= [{:job-name "my-pipeline previous-job" :build-id "4277"}]
                (:triggered-by build)))))))

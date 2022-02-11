@@ -3,8 +3,7 @@
              [api :as api]
              [transform :as transform]]
             [clj-yaml.core :as yaml]
-            [clojure.java.io :as io]
-            [clojure.tools.logging :as log]))
+            [clojure.java.io :as io]))
 
 (defn config-for [concourse-target]
   (let [flyrc (io/file (System/getProperty "user.home") ".flyrc")
@@ -30,9 +29,8 @@
 (defn- triggering-build-in-builds-with-same-resource-version [triggering-job-name builds-with-input]
   (let [candidates (->> builds-with-input
                         (filter #(= triggering-job-name (:job_name %)))
-                        (filter #(not= "user" (:created_by %))))]
-    (when (< 1 (count candidates))
-      (log/warnf "Found more than one possible match for a build trigger on %s: %s" triggering-job-name (prn-str candidates)))
+                        (filter #(= "succeeded" (:status %)))
+                        (sort-by :end_time))]
     (first candidates)))
 
 (defn- build->triggered-input-version [resources input-name]
