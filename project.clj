@@ -18,6 +18,7 @@
                  [wharf "0.2.0-20141115.032457-2"]]
   :main build-facts.main
   :aot [build-facts.main]
+  :jar-exclusions [#"docker/.*"]
   :profiles {:dev {:dependencies [[clj-http-fake "1.0.3"]]
                    :plugins [[lein-ancient "1.0.0-RC3"]
                              [lein-nvd "1.9.0"]]}

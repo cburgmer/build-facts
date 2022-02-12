@@ -3,8 +3,6 @@
 /checkouts
 pom.xml
 pom.xml.asc
-*.jar
-*.class
 /.lein-*
 /.nrepl-port
 /log/
@@ -12,3 +10,4 @@ pom.xml.asc
 /examples/teamcity/data/
 /test/smoke/node_modules/
 /test/smoke/package-lock.json
+/test/smoke/wiremock-standalone-*.jar
