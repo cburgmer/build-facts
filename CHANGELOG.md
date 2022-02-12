@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.6.1] - 2022-02-12
+### Fixed
+- The jar contained superfluous files from the development setup increasing the file size.
+
+
 ## [0.6.0] - 2022-02-12
 ### Added
 - Support for `triggeredBy` information from Concourse CI.
