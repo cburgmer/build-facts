@@ -39,23 +39,23 @@ Remove container and purge images
 
 Sync data
 
-    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.5.4/build-facts-0.5.4-standalone.jar
-    $ java -jar build-facts-0.5.4-standalone.jar jenkins http://localhost:8080
+    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.6.0/build-facts-0.6.0-standalone.jar
+    $ java -jar build-facts-0.6.0-standalone.jar jenkins http://localhost:8080
 
 ##### Concourse
 
 Sync data
 
-    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.5.4/build-facts-0.5.4-standalone.jar
+    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.6.0/build-facts-0.6.0-standalone.jar
     $ fly login --target build-facts -c http://localhost:8080
-    $ java -jar build-facts-0.5.4-standalone.jar concourse build-facts 'http://localhost:8080'
+    $ java -jar build-facts-0.6.0-standalone.jar concourse build-facts 'http://localhost:8080'
 
 ##### TeamCity
 
 Sync data
 
-    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.5.4/build-facts-0.5.4-standalone.jar
-    $ TEAMCITY_USER=admin TEAMCITY_PASSWORD=admin java -jar build-facts-0.5.4-standalone.jar teamcity 'http://localhost:8111' -p SimpleSetup
+    $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.6.0/build-facts-0.6.0-standalone.jar
+    $ TEAMCITY_USER=admin TEAMCITY_PASSWORD=admin java -jar build-facts-0.6.0-standalone.jar teamcity 'http://localhost:8111' -p SimpleSetup
 
 
 ### Splunk
@@ -67,7 +67,7 @@ Start up Splunk and a build server of your choice
 
 Sync data from the build server into Splunk
 
-    $ java -jar build-facts-0.5.4-standalone.jar jenkins http://localhost:8080 --splunk \
+    $ java -jar build-facts-0.6.0-standalone.jar jenkins http://localhost:8080 --splunk \
         curl -k -d@- -H 'Transfer-Encoding: chunked' -H "Authorization: Splunk 1234567890qwertyuiop" \
         'https://localhost:8088/services/collector'
 
