@@ -47,7 +47,7 @@ Sync data
 Sync data
 
     $ curl -LO https://github.com/cburgmer/build-facts/releases/download/0.6.1/build-facts-0.6.1-standalone.jar
-    $ fly login --target build-facts -c http://localhost:8080
+    $ fly login --target build-facts -c http://localhost:8080 -u user -p password
     $ java -jar build-facts-0.6.1-standalone.jar concourse build-facts 'http://localhost:8080'
 
 ##### TeamCity
