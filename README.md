@@ -39,7 +39,7 @@ See [BUILD_SERVERS.md](./BUILD_SERVERS.md) for detailed setup.
 
 ## JSON schema
 
-[JSON Schema document](./schema.json)
+[JSON Schema document](./resources/schema.json)
 
 Example:
 

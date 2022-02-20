@@ -1,7 +1,8 @@
 (ns integration.teamcity-test
   (:require [build-facts.main :as sut]
             [cheshire.core :as j]
-            [clojure.test :refer :all])
+            [clojure.test :refer :all]
+            [json-schema.core :as schema])
   (:import com.github.tomakehurst.wiremock.core.WireMockConfiguration
            com.github.tomakehurst.wiremock.WireMockServer))
 
@@ -58,6 +59,12 @@
                     (filter :testResults)
                     (map :jobName)
                     dedupe
-                    sort)))))
+                    sort))))
+
+      (testing "has valid schema"
+        (let [build-schema (slurp (clojure.java.io/resource "schema.json"))]
+          (->> json-stream
+               (map #(schema/validate build-schema %))
+               doall))))
 
     (.stop server)))

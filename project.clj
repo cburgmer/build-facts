@@ -20,7 +20,8 @@
   :aot [build-facts.main]
   :jar-exclusions [#"docker/.*"]
   :profiles {:dev {:dependencies [[clj-http-fake "1.0.3"]
-                                  [com.github.tomakehurst/wiremock "2.27.2"]]
+                                  [com.github.tomakehurst/wiremock "2.27.2"]
+                                  [luposlip/json-schema "0.3.3"]]
                    :plugins [[lein-ancient "1.0.0-RC3"]
                              [lein-nvd "1.9.0"]]}
              :test {:resource-paths ["test/resources" "test/integration/teamcity-recording.jar"]}}
