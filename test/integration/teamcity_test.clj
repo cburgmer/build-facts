@@ -2,7 +2,8 @@
   (:require [build-facts.main :as sut]
             [cheshire.core :as j]
             [clojure.test :refer :all]
-            [json-schema.core :as schema])
+            [json-schema.core :as schema]
+            [clj-http.client :as client])
   (:import com.github.tomakehurst.wiremock.core.WireMockConfiguration
            com.github.tomakehurst.wiremock.WireMockServer))
 
@@ -65,6 +66,17 @@
         (let [build-schema (slurp (clojure.java.io/resource "schema.json"))]
           (->> json-stream
                (map #(schema/validate build-schema %))
-               doall))))
+               doall)))
+
+      (testing "user agent is sent"
+        (let [response (client/post (str "http://localhost:" (.port server) "/__admin/requests/count")
+                                    {:body (j/generate-string {:method "GET"
+                                                               :url "/httpAuth/app/rest/projects/SimpleSetup"
+                                                               :headers {:User-Agent {:matches "build-facts.*"}}})})]
+          (is (< 0
+                 (-> response
+                     :body
+                     (j/parse-string true)
+                     :count))))))
 
     (.stop server)))
