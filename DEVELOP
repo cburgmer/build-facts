@@ -12,7 +12,14 @@ Just a few pointers if you want to make changes to build-facts:
 
     $ ./go make_release 1.2.3
 
-## Re-generating the recorded traffic from actual GoCD server
+## Bump docker versions of examples
+
+When upgrading the examples, make sure to also re-record the traffic, so the
+integration tests mimick the up-to-date version:
+
+    $ ./test/integration/record_teamcity.sh
+
+## Re-generating the recorded traffic
 
 Re-generating the traffic, captured via wiremock, is necessary if a new API is
 accessed in the sync that hasn't been captured yet, or any URL access has been
