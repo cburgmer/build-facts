@@ -46,6 +46,16 @@
            (->> (a-teamcity-build {:snapshot-dependencies {:build [{:buildType {:name "job_name"
                                                                                 :projectName "project"}
                                                                     :number "42"}]}
+                                   :triggered {:type "finishBuild"}})
+                sut/teamcity-build->build-facts-build
+                :triggered-by))))
+
+  (testing "should return triggeredBy information for legacy response"
+    (is (= [{:job-name "project job_name"
+             :build-id "42"}]
+           (->> (a-teamcity-build {:snapshot-dependencies {:build [{:buildType {:name "job_name"
+                                                                                :projectName "project"}
+                                                                    :number "42"}]}
                                    :triggered {:type "unknown"}})
                 sut/teamcity-build->build-facts-build
                 :triggered-by))))

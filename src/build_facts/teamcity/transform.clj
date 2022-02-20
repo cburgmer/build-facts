@@ -25,7 +25,8 @@
        revision))
 
 (defn- triggered-by-snapshot-deps [{build :build} {type :type}]
-  (when (= type "unknown")
+  (when (or (= type "finishBuild")
+            (= type "unknown"))
     (map (fn [{number :number {name :name projectName :projectName} :buildType}]
            {:job-name (full-job-name projectName name)
             :build-id number})

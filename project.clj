@@ -19,9 +19,10 @@
   :main build-facts.main
   :aot [build-facts.main]
   :jar-exclusions [#"docker/.*"]
-  :profiles {:dev {:dependencies [[clj-http-fake "1.0.3"]]
+  :profiles {:dev {:dependencies [[clj-http-fake "1.0.3"]
+                                  [com.github.tomakehurst/wiremock "2.27.2"]]
                    :plugins [[lein-ancient "1.0.0-RC3"]
                              [lein-nvd "1.9.0"]]}
-             :test {:resource-paths ["test/resources"]}}
+             :test {:resource-paths ["test/resources" "test/integration/teamcity-recording.jar"]}}
   :jvm-opts ["-Dclojure.tools.logging.factory=clojure.tools.logging.impl/log4j2-factory"
              "--illegal-access=deny"]) ; https://clojure.org/guides/faq#illegal_access
