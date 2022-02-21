@@ -53,9 +53,15 @@
              {:base-url teamcity-url
               :projects projects}))))
 
+(defn config-for [base-url projects]
+  {:base-url base-url
+   :projects projects
+   :basic-auth (when-let [teamcity-user (System/getenv "TEAMCITY_USER")]
+                 [teamcity-user (System/getenv "TEAMCITY_PASSWORD")])})
+
 (defn run [options]
   (let [teamcity-options (merge options
                                 (parse-options (:action-args options)))
-        config (builds/config-for (select-keys teamcity-options [:base-url :projects]))]
+        config (config-for (:base-url teamcity-options) (:projects teamcity-options))]
     (sync/sync-builds teamcity-options
                       #(builds/teamcity-builds config))))

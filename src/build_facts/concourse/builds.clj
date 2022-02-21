@@ -2,30 +2,8 @@
   (:require [build-facts.concourse
              [api :as api]
              [transform :as transform]]
-            [clj-yaml.core :as yaml]
-            [clojure.java.io :as io]
             [clojure.tools.logging :as log]))
 
-(defn config-for [concourse-target]
-  (let [flyrc (io/file (System/getProperty "user.home") ".flyrc")
-        config (-> (slurp flyrc)
-                   (yaml/parse-string :keywords false)
-                   (get "targets")
-                   (get concourse-target))]
-    (if (= (-> config
-               (get "token")
-               (get "type"))
-           "bearer")
-      {:base-url (get config "api")
-       :team-name (get config "team")
-       :bearer-token (-> config
-                         (get "token")
-                         (get "value"))
-       :concourse-target concourse-target}
-      (throw (Exception.
-              (format "No token found for concourse target '%s'. Please run 'fly login --target %s -c CONCOURSE_URL' or provide a correct target."
-                      concourse-target
-                      concourse-target))))))
 
 (defn- triggering-build-in-builds-with-same-resource-version [triggering-job-name builds-with-input]
   (let [candidates (->> builds-with-input

@@ -3,11 +3,6 @@
              [api :as api]
              [transform :as transform]]))
 
-(defn config-for [{base-url :base-url projects :projects}]
-  {:base-url base-url
-   :projects projects
-   :basic-auth (when-let [teamcity-user (System/getenv "TEAMCITY_USER")]
-                 [teamcity-user (System/getenv "TEAMCITY_PASSWORD")])})
 
 (defn- add-test-results [config build]
   (assoc build :tests (api/get-test-report config (:id (:build build)))))

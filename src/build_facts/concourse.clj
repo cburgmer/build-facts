@@ -3,7 +3,9 @@
             [build-facts.sync :as sync]
             [build-facts.concourse.builds :as builds]
             [clojure.string :as string]
-            [clojure.tools.cli :refer [parse-opts]]))
+            [clojure.tools.cli :refer [parse-opts]]
+            [clj-yaml.core :as yaml]
+            [clojure.java.io :as io]))
 
 (defn concourse-usage [options-summary]
   (string/join "\n"
@@ -37,9 +39,30 @@
       (merge (:options args)
              {:concourse-target concourse-target}))))
 
+(defn config-for [concourse-target]
+  (let [flyrc (io/file (System/getProperty "user.home") ".flyrc")
+        config (-> (slurp flyrc)
+                   (yaml/parse-string :keywords false)
+                   (get "targets")
+                   (get concourse-target))]
+    (if (= (-> config
+               (get "token")
+               (get "type"))
+           "bearer")
+      {:base-url (get config "api")
+       :team-name (get config "team")
+       :bearer-token (-> config
+                         (get "token")
+                         (get "value"))
+       :concourse-target concourse-target}
+      (throw (Exception.
+              (format "No token found for concourse target '%s'. Please run 'fly login --target %s -c CONCOURSE_URL' or provide a correct target."
+                      concourse-target
+                      concourse-target))))))
+
 (defn run [options]
   (let [concourse-options (merge options
                                  (parse-options (:action-args options)))
-        config (builds/config-for (:concourse-target concourse-options))]
+        config (config-for (:concourse-target concourse-options))]
     (sync/sync-builds (assoc concourse-options :base-url (:base-url config))
                       #(builds/concourse-builds config))))
