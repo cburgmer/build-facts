@@ -22,8 +22,6 @@ goal_test_smoke() {
     "${SCRIPT_DIR}/test/smoke/test_gocd.sh"
     echo "Testing Jenkins sync"
     "${SCRIPT_DIR}/test/smoke/test_jenkins.sh"
-    echo "Testing TeamCity sync"
-    "${SCRIPT_DIR}/test/smoke/test_teamcity.sh"
     echo "Testing Concourse sync"
     "${SCRIPT_DIR}/test/smoke/test_concourse.sh"
 }
