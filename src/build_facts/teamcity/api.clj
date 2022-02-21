@@ -6,24 +6,19 @@
             [clojure.tools.logging :as log]
             [uritemplate-clj.core :as templ]))
 
-(def ^:private teamcity-user (System/getenv "TEAMCITY_USER"))
-(def ^:private teamcity-password (System/getenv "TEAMCITY_PASSWORD"))
-(def ^:private teamcity-basic-auth (when teamcity-user
-                                     [teamcity-user teamcity-password]))
-
-(defn- get-json [teamcity-url relative-url]
+(defn- get-json [{:keys [base-url basic-auth]} relative-url]
   (log/info (format "Retrieving %s" relative-url))
-  (let [response (client/get (string/join [(url/with-plain-text-password teamcity-url)
+  (let [response (client/get (string/join [(url/with-plain-text-password base-url)
                                            relative-url])
                              {:accept "application/json"
                               :headers {"User-Agent" "build-facts (https://github.com/cburgmer/build-facts)"}
-                              :basic-auth teamcity-basic-auth})]
+                              :basic-auth basic-auth})]
     (log/info (format "Retrieved %s: %s" relative-url (:status response)))
     (j/parse-string (:body response) true)))
 
-(defn get-jobs [teamcity-url project-id]
-  (let [response (get-json teamcity-url (templ/uritemplate "/httpAuth/app/rest/projects{/project}"
-                                                           {"project" project-id}))
+(defn get-jobs [config project-id]
+  (let [response (get-json config (templ/uritemplate "/httpAuth/app/rest/projects{/project}"
+                                                     {"project" project-id}))
         jobs (-> response
                  (get :buildTypes)
                  (get :buildType))
@@ -32,7 +27,7 @@
                           :project
                           (map :id))]
     (concat jobs
-            (mapcat #(get-jobs teamcity-url %) sub-projects))))
+            (mapcat #(get-jobs config %) sub-projects))))
 
 
 (def ^:private builds-paging-count 100)
@@ -42,8 +37,8 @@
                              "snapshot-dependencies(build(number,buildType(name,projectName)))"
                              "triggered"])
 
-(defn- get-builds-from [teamcity-url job-id offset]
-  (let [response (get-json teamcity-url
+(defn- get-builds-from [config job-id offset]
+  (let [response (get-json config
                            (templ/uritemplate "/httpAuth/app/rest/buildTypes/id:{job}/builds/?locator=count:{count},start:{offset}&fields=build({fields})"
                                               {"job" job-id
                                                "count" builds-paging-count
@@ -54,16 +49,16 @@
       builds
       (let [next-offset (+ offset builds-paging-count)]
         (concat builds
-                (get-builds-from teamcity-url job-id next-offset))))))
+                (get-builds-from config job-id next-offset))))))
 
-(defn get-builds [teamcity-url job-id]
-  (lazy-seq (get-builds-from teamcity-url job-id 0))) ; don't do an api call yet, helps the progress bar to render early
+(defn get-builds [config job-id]
+  (lazy-seq (get-builds-from config job-id 0))) ; don't do an api call yet, helps the progress bar to render early
 
 
 (def ^:private test-occurrence-paging-count 10000)
 
-(defn- get-test-report-from [teamcity-url build-id offset]
-  (let [response (get-json teamcity-url
+(defn- get-test-report-from [config build-id offset]
+  (let [response (get-json config
                            (templ/uritemplate "/httpAuth/app/rest/testOccurrences?locator=count:{count},start:{offset},build:(id:{build})"
                                               {"count" test-occurrence-paging-count
                                                "offset" offset
@@ -73,7 +68,7 @@
       test-occurrences
       (let [next-offset (+ offset test-occurrence-paging-count)]
         (concat test-occurrences
-                (get-test-report-from teamcity-url build-id next-offset))))))
+                (get-test-report-from config build-id next-offset))))))
 
-(defn get-test-report [teamcity-url build-id]
-  (get-test-report-from teamcity-url build-id 0))
+(defn get-test-report [config build-id]
+  (get-test-report-from config build-id 0))
