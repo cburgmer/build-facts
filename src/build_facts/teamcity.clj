@@ -1,10 +1,11 @@
 (ns build-facts.teamcity
-  (:require [build-facts.shared :as shared]
+  (:require [clojure.string :as string]
+            [clojure.tools.cli :refer [parse-opts]]
+            [build-facts.shared :as shared]
             [build-facts.sync :as sync]
             [build-facts.teamcity.builds :as builds]
             [build-facts.util.url :as url]
-            [clojure.string :as string]
-            [clojure.tools.cli :refer [parse-opts]]))
+            [build-facts.util.env :as env]))
 
 (def concourse-cli-options
   (concat
@@ -56,8 +57,8 @@
 (defn config-for [base-url projects]
   {:base-url base-url
    :projects projects
-   :basic-auth (when-let [teamcity-user (System/getenv "TEAMCITY_USER")]
-                 [teamcity-user (System/getenv "TEAMCITY_PASSWORD")])})
+   :basic-auth (when-let [teamcity-user (env/env-var "TEAMCITY_USER")]
+                 [teamcity-user (env/env-var "TEAMCITY_PASSWORD")])})
 
 (defn run [options]
   (let [teamcity-options (merge options
