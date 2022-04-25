@@ -146,6 +146,7 @@ goal_destroy() {
 goal_purge() {
     announce "Purging docker images"
     docker images -q jetbrains/teamcity-server | xargs docker rmi &>> "$TMP_LOG"
+    docker images -q teamcity_agent | xargs docker rmi &>> "$TMP_LOG"
     docker images -q jetbrains/teamcity-minimal-agent | xargs docker rmi &>> "$TMP_LOG"
     echo " done"
 }
