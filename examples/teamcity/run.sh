@@ -83,7 +83,7 @@ provision_teamcity() {
 
 teamcity_queue_length() {
     curl --silent --fail "${BASE_API_URL}/buildQueue" -H "Accept: application/json" | \
-        python -c "import json; import sys; print json.loads(sys.stdin.read())['count']"
+        python3 -c "import json; import sys; print(json.loads(sys.stdin.read())['count'])"
 }
 
 build_queue_empty() {

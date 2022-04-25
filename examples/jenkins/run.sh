@@ -98,7 +98,7 @@ configure_pipeline() {
 }
 
 jenkins_queue_length() {
-    curl --silent "${BASE_URL}/queue/api/json" | python -c "import json; import sys; print len(json.loads(sys.stdin.read())['items'])"
+    curl --silent "${BASE_URL}/queue/api/json" | python3 -c "import json; import sys; print(len(json.loads(sys.stdin.read())['items']))"
 }
 
 build_queue_empty() {
