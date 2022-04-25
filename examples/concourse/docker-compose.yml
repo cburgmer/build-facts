@@ -3,7 +3,7 @@ version: "3"
 # See https://concourse-ci.org/docker-compose.yml for a default template
 services:
   concourse:
-    image: concourse/concourse:7.6.0
+    image: concourse/concourse:7.7.1
     command: "quickstart"
     ports:
       - "8080:8080"
@@ -20,7 +20,7 @@ services:
       - CONCOURSE_WORKER_CONTAINERD_DNS_SERVER=8.8.8.8
       - CONCOURSE_WORKER_RUNTIME=containerd
   db:
-    image: postgres:14.1
+    image: postgres:14.2
     environment:
       - POSTGRES_USER=concourse
       - POSTGRES_PASSWORD=password
